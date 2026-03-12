@@ -99,11 +99,24 @@ export const App = () => {
     >
       <ColoredLogo />
 
-      <text marginTop={2}>
-        {promptChars.map((charState, index) => (
-          <span key={index} fg={charState.color}>{charState.char}</span>
-        ))}
-      </text>
+      <box flexDirection="row" marginTop={2} alignItems="flex-end">
+        <text fg={COLORS.ORANGE}>{"(•‿•)"}</text>
+        <box flexDirection="column" marginLeft={1}>
+          <box
+            border
+            borderStyle="rounded"
+            borderColor={COLORS.ORANGE}
+            paddingX={1}
+          >
+            <text>
+              {promptChars.map((charState, index) => (
+                <span key={index} fg={charState.color}>{charState.char}</span>
+              ))}
+            </text>
+          </box>
+          <text fg={COLORS.ORANGE}>{"──╯"}</text>
+        </box>
+      </box>
 
       <box flexDirection="column" marginTop={2} gap={1}>
         {MENU_OPTIONS.map((option, index) => {

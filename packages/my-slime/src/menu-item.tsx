@@ -1,4 +1,4 @@
-import { COLORS, NUMBER_OPTION_GAP, SELECTED_INDICATOR, TYPEWRITER_SHADES, TYPEWRITER_TICK_MS } from "./constants";
+import { COLORS, DETAIL_TYPEWRITER_TICK_MS, NUMBER_OPTION_GAP, SELECTED_INDICATOR, TYPEWRITER_SHADES } from "./constants";
 import { useTypewriter } from "./utils/use-typewriter";
 
 interface MenuItemProps {
@@ -9,7 +9,7 @@ interface MenuItemProps {
 }
 
 const DetailText = ({ detail, isSelected }: { detail: string; isSelected: boolean }) => {
-  const detailChars = useTypewriter(isSelected ? ` ${detail}` : "", TYPEWRITER_SHADES, TYPEWRITER_TICK_MS);
+  const detailChars = useTypewriter(isSelected ? ` ${detail}` : "", TYPEWRITER_SHADES, DETAIL_TYPEWRITER_TICK_MS);
 
   if (detailChars.length === 0) return null;
 
@@ -26,7 +26,8 @@ const DiffDetail = ({ isSelected }: { isSelected: boolean }) => {
   const detailChars = useTypewriter(
     isSelected ? " [ +44 -23 · 2 files ]" : "",
     TYPEWRITER_SHADES,
-    TYPEWRITER_TICK_MS,
+    DETAIL_TYPEWRITER_TICK_MS,
+    true,
   );
 
   if (detailChars.length === 0) return null;

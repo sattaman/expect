@@ -14,47 +14,40 @@ export const useTypewriter = (
   text: string,
   shadeColors: readonly string[],
   tickIntervalMs: number,
+  initiallyVisible = false,
 ): TypewriterChar[] => {
-  const [progress, setProgress] = useState(0);
-  const [phase, setPhase] = useState<"in" | "out" | "idle">("in");
+  const maxInitial = initiallyVisible ? getMaxProgress(text.length, shadeColors.length) : 0;
+  const [progress, setProgress] = useState(maxInitial);
+  const [isAnimating, setIsAnimating] = useState(!initiallyVisible);
   const [displayText, setDisplayText] = useState(text);
-  const pendingTextRef = useRef(text);
+  const previousTextRef = useRef(text);
 
   useEffect(() => {
-    if (text === pendingTextRef.current) return;
-    pendingTextRef.current = text;
-    if (phase === "idle") {
-      setPhase("out");
-    }
-  }, [text, phase]);
+    if (text === previousTextRef.current) return;
+    previousTextRef.current = text;
+    setDisplayText(text);
+    setProgress(0);
+    setIsAnimating(text.length > 0);
+  }, [text]);
 
   useEffect(() => {
-    if (phase === "idle") return;
+    if (!isAnimating) return;
 
     const maxProgress = getMaxProgress(displayText.length, shadeColors.length);
 
     const interval = setInterval(() => {
       setProgress((previous) => {
-        if (phase === "in") {
-          return Math.min(maxProgress, previous + 1);
+        const next = previous + 1;
+        if (next >= maxProgress) {
+          setIsAnimating(false);
+          return maxProgress;
         }
-        return Math.max(0, previous - 2);
+        return next;
       });
     }, tickIntervalMs);
 
     return () => clearInterval(interval);
-  }, [phase, displayText, tickIntervalMs, shadeColors.length]);
-
-  useEffect(() => {
-    const maxProgress = getMaxProgress(displayText.length, shadeColors.length);
-    if (phase === "in" && progress >= maxProgress) {
-      setPhase("idle");
-    }
-    if (phase === "out" && progress <= 0) {
-      setDisplayText(pendingTextRef.current);
-      setPhase("in");
-    }
-  }, [phase, progress, displayText, shadeColors.length]);
+  }, [isAnimating, displayText, tickIntervalMs, shadeColors.length]);
 
   const chars: TypewriterChar[] = [];
   for (let index = 0; index < displayText.length; index++) {
