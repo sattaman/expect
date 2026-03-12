@@ -137,7 +137,7 @@ export const RemoteBranchScreen = ({ onSelect }: RemoteBranchScreenProps) => {
           <box flexDirection="column" marginTop={1} gap={0}>
             {filteredBranches.map((branch, index) => (
               <text key={index} fg={index === highlightedIndex ? COLORS.SELECTION : COLORS.TEXT}>
-                {index === highlightedIndex ? "> " : "  "}
+                {index === highlightedIndex ? "➤ " : "  "}
                 {branch.name}
                 <PrBadge branch={branch} />
               </text>

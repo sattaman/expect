@@ -1,12 +1,12 @@
-export const ASCII_ART = `             _
- _ _ ___ _ __  __ _(_)_ _
-| '_/ -_) '_ \\/ _\` | | '_|
-|_| \\___|.__/\\__,_|_|_|
-       |_|`;
+export const ASCII_ART = `   __            __  _
+  / /____  _____/ /_(_)__
+ / __/ _ \\/ ___/ __/ / _ \\
+/ /_/  __(__  ) /_/ /  __/
+\\__/\\___/____/\\__/_/\\___/`;
 
-export const COMMAND_PREFIX = "$ npx repair";
+export const SELECTED_INDICATOR = "➤";
 
-export const SELECTED_INDICATOR = ">";
+export const NUMBER_OPTION_GAP = "  ";
 
 export const CURRENT_BRANCH_INDEX = 1;
 

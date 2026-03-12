@@ -1,12 +1,11 @@
 import { useState } from "react";
 import { useKeyboard } from "@opentui/react";
 import {
-  ASCII_ART,
   COLORS,
-  COMMAND_PREFIX,
   CURRENT_BRANCH_INDEX,
   LOCAL_BRANCH_INDEX,
   MENU_OPTIONS,
+  NUMBER_OPTION_GAP,
   PROMPT_TEXT,
   REMOTE_BRANCH_INDEX,
   SOMETHING_ELSE_INDEX,
@@ -14,6 +13,7 @@ import {
 import { MenuItem } from "./menu-item";
 import { LocalBranchScreen } from "./local-branch-screen";
 import { RemoteBranchScreen } from "./remote-branch-screen";
+import { ColoredLogo } from "./colored-logo";
 
 type Screen = "main" | "local-branch" | "remote-branch";
 
@@ -92,11 +92,7 @@ export const App = () => {
       paddingX={2}
       paddingY={1}
     >
-      <text fg={COLORS.TEXT}>{COMMAND_PREFIX}</text>
-
-      <text fg={COLORS.TEXT} marginTop={1}>
-        {ASCII_ART}
-      </text>
+      <ColoredLogo />
 
       <box
         border
@@ -132,7 +128,7 @@ export const App = () => {
               {index === SOMETHING_ELSE_INDEX ? (
                 <box flexDirection="row">
                   <text fg={index === selectedIndex ? COLORS.SELECTION : COLORS.TEXT}>
-                    {index === selectedIndex ? `> ${index + 1}. ` : `  ${index + 1}. `}
+                    {index === selectedIndex ? `➤ ${index + 1}${NUMBER_OPTION_GAP}` : `  ${index + 1}${NUMBER_OPTION_GAP}`}
                   </text>
                   <input
                     focused={index === selectedIndex}
@@ -154,7 +150,7 @@ export const App = () => {
                   />
                   {index === CURRENT_BRANCH_INDEX && index === selectedIndex && (
                     <text fg={COLORS.DIM} marginLeft={5}>
-                      <span fg={includeUnstaged ? COLORS.SELECTION : COLORS.DIM}>
+                      <span fg={includeUnstaged ? COLORS.GREEN : COLORS.DIM}>
                         {includeUnstaged ? "[x]" : "[ ]"}
                       </span>
                       <span> include unstaged changes </span>

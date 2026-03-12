@@ -65,7 +65,7 @@ export const LocalBranchScreen = ({ onSelect }: LocalBranchScreenProps) => {
       <box flexDirection="column" marginTop={1} gap={0}>
         {filteredBranches.map((branch, index) => (
           <text key={index} fg={index === highlightedIndex ? COLORS.SELECTION : COLORS.TEXT}>
-            {index === highlightedIndex ? `> ${branch}` : `  ${branch}`}
+            {index === highlightedIndex ? `➤ ${branch}` : `  ${branch}`}
           </text>
         ))}
         {filteredBranches.length === 0 && <text fg={COLORS.DIM}>No matching branches</text>}

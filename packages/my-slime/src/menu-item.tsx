@@ -1,4 +1,4 @@
-import { COLORS, SELECTED_INDICATOR } from "./constants";
+import { COLORS, NUMBER_OPTION_GAP, SELECTED_INDICATOR } from "./constants";
 
 interface MenuItemProps {
   index: number;
@@ -8,13 +8,13 @@ interface MenuItemProps {
 }
 
 export const MenuItem = ({ index, label, detail, isSelected }: MenuItemProps) => {
-  const number = `${index + 1}.`;
+  const number = `${index + 1}`;
 
   if (isSelected && index === 0) {
     return (
       <text fg={COLORS.TEXT}>
         <span fg={COLORS.SELECTION}>{SELECTED_INDICATOR} </span>
-        <span>{number} </span>
+        <span>{number}{NUMBER_OPTION_GAP}</span>
         <span fg={COLORS.SELECTION}>{label}</span>
         <span fg={COLORS.TEXT}> [ </span>
         <span fg={COLORS.GREEN}>+44</span>
@@ -29,7 +29,7 @@ export const MenuItem = ({ index, label, detail, isSelected }: MenuItemProps) =>
     return (
       <text fg={COLORS.TEXT}>
         <span fg={COLORS.SELECTION}>{SELECTED_INDICATOR} </span>
-        <span>{number} </span>
+        <span>{number}{NUMBER_OPTION_GAP}</span>
         <span fg={COLORS.SELECTION}>{label}</span>
         {detail ? <span fg={COLORS.DIM}> {detail}</span> : null}
       </text>
@@ -39,7 +39,7 @@ export const MenuItem = ({ index, label, detail, isSelected }: MenuItemProps) =>
   return (
     <text fg={COLORS.TEXT}>
       <span>{"  "}</span>
-      <span>{number} </span>
+      <span>{number}{NUMBER_OPTION_GAP}</span>
       <span>{label}</span>
       {detail ? <span fg={COLORS.DIM}> {detail}</span> : null}
     </text>
