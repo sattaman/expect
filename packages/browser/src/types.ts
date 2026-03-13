@@ -1,10 +1,5 @@
-import type { Browser } from "@browser-tester/extract-cookie";
-import type { ElementInfo as BaseElementInfo } from "element-source";
+import type { Browser } from "@browser-tester/cookies";
 import type { Browser as PlaywrightBrowser, BrowserContext, Locator, Page } from "playwright";
-
-export interface ElementInfo extends BaseElementInfo {
-  selector: string;
-}
 
 export type AriaRole = Parameters<Page["getByRole"]>[0];
 
@@ -26,7 +21,6 @@ export interface SnapshotResult {
   tree: string;
   refs: RefMap;
   locator: (ref: string) => Locator;
-  inspect: (refOrLocator: string | Locator) => Promise<ElementInfo>;
 }
 
 export interface ParsedAriaLine {
@@ -44,8 +38,7 @@ export interface CreatePageOptions {
   headed?: boolean;
   executablePath?: string;
   cookies?: boolean;
-  cookieBrowsers?: Browser[];
-  cookiesFile?: string;
+  waitUntil?: "load" | "domcontentloaded" | "networkidle" | "commit";
 }
 
 export interface CreatePageResult {

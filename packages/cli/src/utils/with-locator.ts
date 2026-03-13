@@ -1,4 +1,4 @@
-import { interact } from "@browser-tester/browser";
+import { act } from "@browser-tester/browser";
 import type { Locator } from "playwright";
 import { logger } from "./logger";
 import type { SharedOptions } from "./shared-options";
@@ -11,7 +11,7 @@ export const withLocator = async (
   action: (locator: Locator) => Promise<void>,
 ) => {
   await withPage(url, options, async (page) => {
-    const result = await interact(page, ref, action, { timeout: options.timeout });
+    const result = await act(page, ref, action, { timeout: options.timeout });
     logger.log(result.tree);
   });
 };

@@ -6,5 +6,5 @@ export default defineConfig({
   dts: true,
   clean: true,
   sourcemap: true,
-  external: ["playwright", "element-source", "@browser-tester/extract-cookie"],
+  external: ["playwright", "@browser-tester/cookies"],
 });

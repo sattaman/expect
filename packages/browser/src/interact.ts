@@ -2,7 +2,7 @@ import type { Locator, Page } from "playwright";
 import { snapshot } from "./snapshot";
 import type { SnapshotOptions, SnapshotResult } from "./types";
 
-export const interact = async (
+export const act = async (
   page: Page,
   ref: string,
   action: (locator: Locator) => Promise<void>,

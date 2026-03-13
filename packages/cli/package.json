@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@browser-tester/browser": "workspace:*",
+    "@browser-tester/cookies": "workspace:*",
     "@types/node": "^22.15.0",
     "picocolors": "^1.1.1",
     "tsup": "^8.5.0",

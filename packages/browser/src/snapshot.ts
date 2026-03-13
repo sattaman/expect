@@ -1,7 +1,6 @@
-import type { Locator, Page } from "playwright";
+import type { Page } from "playwright";
 import { REF_PREFIX, SNAPSHOT_TIMEOUT_MS } from "./constants";
-import type { ElementInfo, RefEntry, RefMap, SnapshotOptions, SnapshotResult } from "./types";
-import { extractElementDetail } from "./utils/extract-element-detail";
+import type { RefEntry, RefMap, SnapshotOptions, SnapshotResult } from "./types";
 import { parseAriaLine } from "./utils/parse-aria-line";
 import { resolveLocator } from "./utils/resolve-locator";
 
@@ -51,14 +50,5 @@ export const snapshot = async (
     return resolveLocator(page, entry);
   };
 
-  const inspect = async (refOrLocator: string | Locator): Promise<ElementInfo> => {
-    if (typeof refOrLocator === "string") {
-      const entry = refs[refOrLocator];
-      if (!entry) throw new Error(`Unknown ref: ${refOrLocator}`);
-      return resolveLocator(page, entry).evaluate(extractElementDetail);
-    }
-    return refOrLocator.evaluate(extractElementDetail);
-  };
-
-  return { tree: lines.join("\n"), refs, locator, inspect };
+  return { tree: lines.join("\n"), refs, locator };
 };

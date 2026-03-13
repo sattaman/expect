@@ -1,4 +1,4 @@
-import { CookieJar, extractCookies } from "@browser-tester/extract-cookie";
+import { CookieJar, extractCookies } from "@browser-tester/cookies";
 import type { BrowserContext } from "playwright";
 import type { InjectCookiesOptions } from "./types";
 
