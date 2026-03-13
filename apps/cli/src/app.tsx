@@ -89,6 +89,10 @@ export const App = () => {
   useInput((input, key) => {
     if (!gitState || !recommendedScope) return;
 
+    if (key.tab) {
+      setReviewPlan((previous) => !previous);
+    }
+
     if (screen !== "main") {
       if (key.escape) {
         setScreen("main");
@@ -101,10 +105,6 @@ export const App = () => {
     }
     if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
       setSelectedIndex((previous) => Math.max(0, previous - 1));
-    }
-
-    if (key.tab) {
-      setReviewPlan((previous) => !previous);
     }
 
     if (input === "b") {
@@ -166,11 +166,13 @@ export const App = () => {
     );
   }
 
-  if (screen === "select-commit") {
+  const isSingleOption = menuOptions.length === 1;
+
+  if (screen === "select-commit" && !isSingleOption) {
     return <CommitPickerScreen onSelect={handleCommitSelect} />;
   }
 
-  if (screen === "switch-branch") {
+  if (screen === "switch-branch" && !isSingleOption) {
     return <BranchSwitcherScreen onSelect={handleBranchSwitch} />;
   }
 
@@ -181,17 +183,27 @@ export const App = () => {
         <Text color={COLORS.TEXT}>AI-powered browser testing for your changes</Text>
       </Box>
 
-      <Box flexDirection="column" marginTop={2} gap={1}>
-        {menuOptions.map((option, index) => (
-          <MenuItem
-            key={option.label}
-            label={option.label}
-            detail={option.detail}
-            isSelected={index === selectedIndex}
-            recommended={index === 0 && menuOptions.length > 1}
-          />
-        ))}
-      </Box>
+      {isSingleOption && screen === "select-commit" ? (
+        <Box marginTop={1}>
+          <CommitPickerScreen onSelect={handleCommitSelect} />
+        </Box>
+      ) : isSingleOption && screen === "switch-branch" ? (
+        <Box marginTop={1}>
+          <BranchSwitcherScreen onSelect={handleBranchSwitch} />
+        </Box>
+      ) : (
+        <Box flexDirection="column" marginTop={2} gap={1}>
+          {menuOptions.map((option, index) => (
+            <MenuItem
+              key={option.label}
+              label={option.label}
+              detail={option.detail}
+              isSelected={index === selectedIndex}
+              recommended={index === 0 && menuOptions.length > 1}
+            />
+          ))}
+        </Box>
+      )}
 
       <Box
         marginTop={2}
