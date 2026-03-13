@@ -14,7 +14,7 @@ export interface ThemeDefinition {
   borderSubtle: string;
 }
 
-export const DEFAULT_THEME_NAME = "kanagawa";
+export const DEFAULT_THEME_NAME = "flexoki";
 
 export const THEMES: Record<string, ThemeDefinition> = {
   aura: {

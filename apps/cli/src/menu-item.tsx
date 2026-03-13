@@ -1,5 +1,6 @@
 import { Text } from "ink";
 import { useColors } from "./theme-context.js";
+import type { DiffStats } from "./utils/get-git-state.js";
 
 interface MenuItemProps {
   label: string;
@@ -7,9 +8,17 @@ interface MenuItemProps {
   isSelected: boolean;
   recommended?: boolean;
   hint?: string;
+  diffStats?: DiffStats | null;
 }
 
-export const MenuItem = ({ label, detail, isSelected, recommended, hint }: MenuItemProps) => {
+export const MenuItem = ({
+  label,
+  detail,
+  isSelected,
+  recommended,
+  hint,
+  diffStats,
+}: MenuItemProps) => {
   const COLORS = useColors();
   return (
     <Text>
@@ -17,7 +26,16 @@ export const MenuItem = ({ label, detail, isSelected, recommended, hint }: MenuI
       <Text color={isSelected ? undefined : COLORS.DIM} bold={isSelected}>
         {label}
       </Text>
-      {detail ? <Text color={COLORS.DIM}> {detail}</Text> : null}
+      {diffStats ? (
+        <Text>
+          {" "}
+          <Text color={COLORS.GREEN}>+{diffStats.additions}</Text>{" "}
+          <Text color={COLORS.RED}>-{diffStats.deletions}</Text>{" "}
+          <Text color={COLORS.DIM}>({diffStats.filesChanged} files)</Text>
+        </Text>
+      ) : detail ? (
+        <Text color={COLORS.DIM}> {detail}</Text>
+      ) : null}
       {recommended && <Text color={COLORS.DIM}> (recommended)</Text>}
       {hint && <Text color={COLORS.DIM}> ({hint})</Text>}
     </Text>

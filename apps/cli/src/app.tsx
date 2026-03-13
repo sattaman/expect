@@ -16,6 +16,7 @@ import { Spinner } from "./spinner.js";
 import {
   getGitState,
   getRecommendedScope,
+  type DiffStats,
   type GitState,
   type TestScope,
 } from "./utils/get-git-state.js";
@@ -42,6 +43,7 @@ interface ScopeMenuOption {
   label: string;
   detail: string;
   action: MenuAction;
+  diffStats?: DiffStats | null;
 }
 
 const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption[] => {
@@ -52,6 +54,7 @@ const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption
           label: "Test unstaged changes",
           detail: "",
           action: "test-unstaged",
+          diffStats: gitState.diffStats,
         },
       ];
       if (gitState.isOnMain) {
@@ -329,6 +332,7 @@ export const App = () => {
               hint={
                 menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined
               }
+              diffStats={option.diffStats}
             />
           ))}
         </Box>
