@@ -51,6 +51,9 @@ importers:
       '@anthropic-ai/claude-agent-sdk':
         specifier: ^0.2.74
         version: 0.2.74(zod@3.24.4)
+      '@browser-tester/utils':
+        specifier: workspace:*
+        version: link:../utils
       '@openai/codex-sdk':
         specifier: ^0.114.0
         version: 0.114.0
