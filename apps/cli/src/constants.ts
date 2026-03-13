@@ -27,18 +27,4 @@ export const TESTING_TOOL_TEXT_CHAR_LIMIT = 100;
 export const FLOW_DIRECTORY_NAME = "flows";
 export const FLOW_DIRECTORY_INDEX_FILE_NAME = "directory.md";
 export const FLOW_DESCRIPTION_CHAR_LIMIT = 120;
-
-export const COLORS = {
-  TEXT: "white",
-  DIM: "#999999",
-  GREEN: "greenBright",
-  ORANGE: "#ff8c00",
-  SELECTION: "cyanBright",
-  RED: "redBright",
-  BORDER: "gray",
-  DIVIDER: "gray",
-  YELLOW: "yellowBright",
-  PURPLE: "blueBright",
-  CYAN: "cyanBright",
-  AMBER: "yellowBright",
-} as const;
+export const THEME_PICKER_VISIBLE_COUNT = 20;

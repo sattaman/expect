@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import type { BrowserEnvironmentHints, BrowserFlowPlan, BrowserRunEvent, TestTarget } from "@browser-tester/orchestrator";
-import { COLORS, TESTING_TOOL_TEXT_CHAR_LIMIT, TESTING_VISIBLE_LOG_COUNT } from "./constants.js";
+import type {
+  BrowserEnvironmentHints,
+  BrowserFlowPlan,
+  BrowserRunEvent,
+  TestTarget,
+} from "@browser-tester/orchestrator";
+import { TESTING_TOOL_TEXT_CHAR_LIMIT, TESTING_VISIBLE_LOG_COUNT } from "./constants.js";
+import { useColors, type Colors } from "./theme-context.js";
 import { Spinner } from "./spinner.js";
 import { executeApprovedPlan } from "./utils/browser-agent.js";
 
@@ -118,41 +124,41 @@ const shouldShowToolResult = (event: Extract<BrowserRunEvent, { type: "tool-resu
   event.toolName === `${BROWSER_TOOL_PREFIX}save_video` ||
   event.toolName === `${BROWSER_TOOL_PREFIX}close`;
 
-const formatRunEvent = (event: BrowserRunEvent): TestingLine | null => {
+const formatRunEvent = (event: BrowserRunEvent, colors: Colors): TestingLine | null => {
   switch (event.type) {
     case "run-started":
       return {
         text: `Starting ${event.planTitle}`,
-        color: COLORS.PURPLE,
+        color: colors.PURPLE,
       };
     case "step-started":
       return {
         text: `→ ${event.stepId} ${event.title}`,
-        color: COLORS.SELECTION,
+        color: colors.SELECTION,
       };
     case "step-completed":
       return {
         text: `✓ ${event.stepId} ${truncateText(event.summary, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
-        color: COLORS.GREEN,
+        color: colors.GREEN,
       };
     case "assertion-failed":
       return {
         text: `✗ ${event.stepId} ${truncateText(event.message, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
-        color: COLORS.RED,
+        color: colors.RED,
       };
     case "tool-call": {
       const toolCallText = formatBrowserToolCall(event.toolName, event.input);
       if (!toolCallText) return null;
       return {
         text: `• ${toolCallText}`,
-        color: COLORS.DIM,
+        color: colors.DIM,
       };
     }
     case "tool-result":
       if (!shouldShowToolResult(event)) return null;
       return {
         text: truncateText(event.result, TESTING_TOOL_TEXT_CHAR_LIMIT),
-        color: event.isError ? COLORS.RED : COLORS.DIM,
+        color: event.isError ? colors.RED : colors.DIM,
       };
     case "browser-log":
     case "text":
@@ -161,12 +167,12 @@ const formatRunEvent = (event: BrowserRunEvent): TestingLine | null => {
     case "error":
       return {
         text: `Error: ${truncateText(event.message, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
-        color: COLORS.RED,
+        color: colors.RED,
       };
     case "run-completed":
       return {
         text: `Run ${event.status}: ${truncateText(event.summary, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
-        color: event.status === "passed" ? COLORS.GREEN : COLORS.RED,
+        color: event.status === "passed" ? colors.GREEN : colors.RED,
       };
     default:
       return null;
@@ -174,16 +180,16 @@ const formatRunEvent = (event: BrowserRunEvent): TestingLine | null => {
 };
 
 export const TestingScreen = ({ target, plan, environment, onExit }: TestingScreenProps) => {
+  const COLORS = useColors();
+  const colorsRef = useRef(COLORS);
+  colorsRef.current = COLORS;
   const [lines, setLines] = useState<TestingLine[]>([]);
   const [running, setRunning] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [videoPath, setVideoPath] = useState<string | null>(null);
   const [currentStep, setCurrentStep] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
-  const visibleLines = useMemo(
-    () => lines.slice(-TESTING_VISIBLE_LOG_COUNT),
-    [lines],
-  );
+  const visibleLines = useMemo(() => lines.slice(-TESTING_VISIBLE_LOG_COUNT), [lines]);
 
   useEffect(() => {
     const abortController = new AbortController();
@@ -204,7 +210,7 @@ export const TestingScreen = ({ target, plan, environment, onExit }: TestingScre
           if (event.type === "step-started") {
             setCurrentStep(`${event.stepId} ${event.title}`);
           }
-          const line = formatRunEvent(event);
+          const line = formatRunEvent(event, colorsRef.current);
           if (line) {
             setLines((previous) => [...previous, line]);
           }
@@ -214,7 +220,10 @@ export const TestingScreen = ({ target, plan, environment, onExit }: TestingScre
         }
       } catch (caughtError) {
         if (caughtError instanceof DOMException && caughtError.name === "AbortError") {
-          setLines((previous) => [...previous, { text: "Cancelled.", color: COLORS.YELLOW }]);
+          setLines((previous) => [
+            ...previous,
+            { text: "Cancelled.", color: colorsRef.current.YELLOW },
+          ]);
         } else {
           const errorMessage = caughtError instanceof Error ? caughtError.message : "Unknown error";
           setError(errorMessage);
@@ -260,9 +269,7 @@ export const TestingScreen = ({ target, plan, environment, onExit }: TestingScre
         <Text color={currentStep ? COLORS.SELECTION : COLORS.DIM}>
           {currentStep ? `Current step: ${currentStep}` : "Waiting for first step..."}
         </Text>
-        <Text color={COLORS.DIM}>
-          Browser actions are summarized below to reduce agent noise.
-        </Text>
+        <Text color={COLORS.DIM}>Browser actions are summarized below to reduce agent noise.</Text>
       </Box>
 
       <Box

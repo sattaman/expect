@@ -2,6 +2,8 @@ import { Command } from "commander";
 import { render } from "ink";
 import { App } from "./app.js";
 import { VERSION } from "./constants.js";
+import { ThemeProvider } from "./theme-context.js";
+import { loadThemeName } from "./utils/load-theme.js";
 import { isAutomatedEnvironment } from "./utils/is-automated-environment.js";
 import { autoDetectAndTest, runTest } from "./utils/run-test.js";
 
@@ -30,7 +32,12 @@ program.action(() => {
   if (isAutomatedEnvironment() || !process.stdin.isTTY) {
     return autoDetectAndTest();
   }
-  render(<App />);
+  const initialTheme = loadThemeName() ?? undefined;
+  render(
+    <ThemeProvider initialTheme={initialTheme}>
+      <App />
+    </ThemeProvider>,
+  );
 });
 
 program.parse();

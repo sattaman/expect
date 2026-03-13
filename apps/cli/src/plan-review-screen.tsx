@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { COLORS } from "./constants.js";
+import { useColors } from "./theme-context.js";
 import type { BrowserEnvironmentHints, BrowserFlowPlan } from "@browser-tester/orchestrator";
 import type { SaveFlowResult } from "./utils/save-flow.js";
 
@@ -22,6 +22,7 @@ export const PlanReviewScreen = ({
   onEnvironmentChange,
   onSave,
 }: PlanReviewScreenProps) => {
+  const COLORS = useColors();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [editingIndex, setEditingIndex] = useState<number | null>(null);
   const [editingValue, setEditingValue] = useState("");
@@ -29,8 +30,11 @@ export const PlanReviewScreen = ({
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  const selectedStep = useMemo(() => plan.steps[selectedIndex] ?? null, [plan.steps, selectedIndex]);
-  const editingStep = editingIndex === null ? null : plan.steps[editingIndex] ?? null;
+  const selectedStep = useMemo(
+    () => plan.steps[selectedIndex] ?? null,
+    [plan.steps, selectedIndex],
+  );
+  const editingStep = editingIndex === null ? null : (plan.steps[editingIndex] ?? null);
   const cookiesEnabled = environment.cookies === true;
 
   useInput((input, key) => {

@@ -1,7 +1,8 @@
 import { useCallback, useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { COLORS, COLUMN_PADDING, SEARCH_PLACEHOLDER, VISIBLE_COMMIT_COUNT } from "./constants.js";
+import { COLUMN_PADDING, SEARCH_PLACEHOLDER, VISIBLE_COMMIT_COUNT } from "./constants.js";
+import { useColors } from "./theme-context.js";
 import { fetchCommits, type Commit } from "./utils/fetch-commits.js";
 
 interface CommitPickerScreenProps {
@@ -9,6 +10,7 @@ interface CommitPickerScreenProps {
 }
 
 export const CommitPickerScreen = ({ onSelect }: CommitPickerScreenProps) => {
+  const COLORS = useColors();
   const [commits] = useState(() => fetchCommits());
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);

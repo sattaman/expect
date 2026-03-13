@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { COLORS, COLUMN_PADDING, SEARCH_PLACEHOLDER } from "./constants.js";
+import { COLUMN_PADDING, SEARCH_PLACEHOLDER } from "./constants.js";
+import { useColors } from "./theme-context.js";
 import { fetchLocalBranches } from "./utils/fetch-local-branches.js";
 import { fetchRemoteBranches, type RemoteBranch } from "./utils/fetch-remote-branches.js";
 import { Spinner } from "./spinner.js";
@@ -14,13 +15,14 @@ interface BranchSwitcherScreenProps {
 }
 
 const PrBadge = ({ branch }: { branch: RemoteBranch }) => {
+  const COLORS = useColors();
   if (!branch.prNumber || !branch.prStatus) return null;
 
   const colorMap = {
     open: COLORS.GREEN,
     draft: COLORS.DIM,
     merged: COLORS.PURPLE,
-  } as const;
+  };
 
   return (
     <Text color={colorMap[branch.prStatus]}>{` PR #${branch.prNumber} (${branch.prStatus})`}</Text>
@@ -34,6 +36,7 @@ const matchesFilter = (branch: RemoteBranch, filter: PrFilter): boolean => {
 };
 
 export const BranchSwitcherScreen = ({ onSelect }: BranchSwitcherScreenProps) => {
+  const COLORS = useColors();
   const [activeTab, setActiveTab] = useState<Tab>("local");
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedIndex, setHighlightedIndex] = useState(0);

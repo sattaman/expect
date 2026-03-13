@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Text, useInput } from "ink";
 import TextInput from "ink-text-input";
-import { COLORS } from "./constants.js";
+import { useColors } from "./theme-context.js";
 import type { TestAction } from "./utils/browser-agent.js";
 
 interface FlowInputScreenProps {
@@ -17,6 +17,7 @@ const ACTION_LABELS: Record<TestAction, string> = {
 };
 
 export const FlowInputScreen = ({ action, initialValue, onSubmit }: FlowInputScreenProps) => {
+  const COLORS = useColors();
   const [value, setValue] = useState(initialValue);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 

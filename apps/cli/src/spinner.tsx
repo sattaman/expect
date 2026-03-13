@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Text } from "ink";
-import { COLORS, SPINNER_INTERVAL_MS } from "./constants.js";
+import { SPINNER_INTERVAL_MS } from "./constants.js";
+import { useColors } from "./theme-context.js";
 
 const SPINNER_FRAMES = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
@@ -9,6 +10,7 @@ interface SpinnerProps {
 }
 
 export const Spinner = ({ message }: SpinnerProps) => {
+  const COLORS = useColors();
   const [frameIndex, setFrameIndex] = useState(0);
 
   useEffect(() => {

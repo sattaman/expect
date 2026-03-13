@@ -1,7 +1,11 @@
 import { useEffect, useState } from "react";
 import { Box, Text, useInput, useStdout } from "ink";
-import type { BrowserEnvironmentHints, BrowserFlowPlan, TestTarget } from "@browser-tester/orchestrator";
-import { COLORS } from "./constants.js";
+import type {
+  BrowserEnvironmentHints,
+  BrowserFlowPlan,
+  TestTarget,
+} from "@browser-tester/orchestrator";
+import { useColors } from "./theme-context.js";
 import { MenuItem } from "./menu-item.js";
 import { BranchSwitcherScreen } from "./branch-switcher-screen.js";
 import { CommitPickerScreen } from "./commit-picker-screen.js";
@@ -16,6 +20,7 @@ import {
   type TestScope,
 } from "./utils/get-git-state.js";
 import { TestingScreen } from "./testing-screen.js";
+import { ThemePickerScreen } from "./theme-picker-screen.js";
 import { switchBranch } from "./utils/switch-branch.js";
 import type { Commit } from "./utils/fetch-commits.js";
 import { generateBrowserPlan, type TestAction } from "./utils/browser-agent.js";
@@ -28,7 +33,8 @@ type Screen =
   | "flow-input"
   | "planning"
   | "review-plan"
-  | "testing";
+  | "testing"
+  | "theme";
 
 type MenuAction = "test-unstaged" | "test-branch" | "select-commit" | "select-branch";
 
@@ -77,6 +83,7 @@ const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption
 
 export const App = () => {
   const { stdout } = useStdout();
+  const COLORS = useColors();
   const [gitState, setGitState] = useState<GitState | null>(null);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [screen, setScreen] = useState<Screen>("main");
@@ -86,7 +93,9 @@ export const App = () => {
   const [flowInstruction, setFlowInstruction] = useState("");
   const [generatedPlan, setGeneratedPlan] = useState<BrowserFlowPlan | null>(null);
   const [resolvedTarget, setResolvedTarget] = useState<TestTarget | null>(null);
-  const [browserEnvironment, setBrowserEnvironment] = useState<BrowserEnvironmentHints | null>(null);
+  const [browserEnvironment, setBrowserEnvironment] = useState<BrowserEnvironmentHints | null>(
+    null,
+  );
   const [planningError, setPlanningError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -153,6 +162,10 @@ export const App = () => {
 
     if (input === "b") {
       setScreen("switch-branch");
+    }
+
+    if (input === "t") {
+      setScreen("theme");
     }
 
     if (key.return && menuOptions.length > 0) {
@@ -233,6 +246,10 @@ export const App = () => {
     return <CommitPickerScreen onSelect={handleCommitSelect} />;
   }
 
+  if (screen === "theme") {
+    return <ThemePickerScreen onBack={() => setScreen("main")} />;
+  }
+
   if (screen === "switch-branch") {
     return <BranchSwitcherScreen onSelect={handleBranchSwitch} />;
   }
@@ -292,11 +309,15 @@ export const App = () => {
   return (
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <Text color={COLORS.ORANGE}>{"═".repeat(stdout.columns - 2)}</Text>
-      <Text bold color={COLORS.TEXT}>browser-tester</Text>
+      <Text bold color={COLORS.TEXT || undefined}>
+        browser-tester
+      </Text>
       <Text color={COLORS.DIM}>AI-powered browser testing</Text>
 
       <Box marginTop={2} flexDirection="column">
-        <Text bold color={COLORS.TEXT}>Actions</Text>
+        <Text bold color={COLORS.TEXT || undefined}>
+          Actions
+        </Text>
         <Box flexDirection="column">
           {menuOptions.map((option, index) => (
             <MenuItem
@@ -305,16 +326,20 @@ export const App = () => {
               detail={option.detail}
               isSelected={index === selectedIndex}
               recommended={index === 0 && menuOptions.length > 1}
-              hint={menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined}
+              hint={
+                menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined
+              }
             />
           ))}
         </Box>
       </Box>
 
       <Box marginTop={2} flexDirection="column">
-        <Text bold color={COLORS.TEXT}>Options</Text>
+        <Text bold color={COLORS.TEXT || undefined}>
+          Options
+        </Text>
         <Text color={COLORS.DIM}>
-          auto-run tests after planning (<Text color={COLORS.TEXT}>⇥ tab</Text>):{" "}
+          auto-run tests after planning (<Text color={COLORS.TEXT || undefined}>⇥ tab</Text>):{" "}
           <Text color={autoRunAfterPlanning ? COLORS.ORANGE : COLORS.DIM}>
             {autoRunAfterPlanning ? "yes" : "no"}
           </Text>
@@ -322,7 +347,11 @@ export const App = () => {
       </Box>
 
       <Box marginTop={2}>
-        <Text backgroundColor="white" color="black">{` b switch branch · ↑↓ nav · current branch: ${gitState.currentBranch}`.padEnd(stdout.columns - 2)}</Text>
+        <Text inverse>
+          {` t theme · b switch branch · ↑↓ nav · current branch: ${gitState.currentBranch}`.padEnd(
+            stdout.columns - 2,
+          )}
+        </Text>
       </Box>
     </Box>
   );
