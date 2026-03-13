@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatError } from "../src/utils/format-error.js";
+import { formatError } from "../src/format-error";
 
 describe("formatError", () => {
   it("extracts message from Error instances", () => {

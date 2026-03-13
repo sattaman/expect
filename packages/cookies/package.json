@@ -24,6 +24,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@browser-tester/utils": "workspace:*",
     "ws": "^8.18.0"
   },
   "devDependencies": {

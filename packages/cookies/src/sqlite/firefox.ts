@@ -3,10 +3,10 @@ import { homedir, platform } from "node:os";
 import path from "node:path";
 import { MAX_UNIX_EPOCH_SECONDS } from "../constants.js";
 import type { Cookie, ExtractResult } from "../types.js";
+import { getEpochSeconds } from "@browser-tester/utils";
 import { copyDatabaseToTemp } from "../utils/copy-database.js";
 import { formatWarning } from "../utils/format-warning.js";
 import { normalizeSameSite } from "../utils/normalize-same-site.js";
-import { nowSeconds } from "../utils/now-seconds.js";
 import { buildHostWhereClause, sqliteBool } from "../utils/sql.js";
 import { stripLeadingDot } from "../utils/strip-leading-dot.js";
 import { querySqlite } from "./adapter.js";
@@ -90,7 +90,7 @@ export const extractFirefoxCookies = async (
 
   try {
     const whereClause = buildHostWhereClause(hosts, "host");
-    const currentTime = nowSeconds();
+    const currentTime = getEpochSeconds();
     const expiryClause = options.includeExpired
       ? ""
       : ` AND (expiry = 0 OR expiry > ${currentTime})`;

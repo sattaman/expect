@@ -9,11 +9,9 @@ import type {
   ExtractProfileOptions,
   ExtractResult,
 } from "../types.js";
+import { copyDir, formatError, sleep } from "@browser-tester/utils";
 import { browserDisplayNameToKey } from "../utils/browser-name-map.js";
-import { copyDir } from "../utils/copy-dir.js";
-import { formatError } from "../utils/format-error.js";
 import { normalizeSameSite } from "../utils/normalize-same-site.js";
-import { sleep } from "../utils/sleep.js";
 import { getCookiesFromBrowser } from "./client.js";
 import {
   BROWSER_KILL_DELAY_MS,

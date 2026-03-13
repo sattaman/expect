@@ -2,12 +2,11 @@ import { existsSync, readFileSync, rmSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import path from "node:path";
 import type { ChromiumBrowser, Cookie, ExtractResult } from "../types.js";
+import { execCommand, getEpochSeconds } from "@browser-tester/utils";
 import { copyDatabaseToTemp } from "../utils/copy-database.js";
-import { execCommand } from "../utils/exec-command.js";
 import { formatWarning } from "../utils/format-warning.js";
 import { normalizeExpiration } from "../utils/normalize-expiration.js";
 import { normalizeSameSite } from "../utils/normalize-same-site.js";
-import { nowSeconds } from "../utils/now-seconds.js";
 import { buildHostWhereClause, sqliteBool } from "../utils/sql.js";
 import { stripLeadingDot } from "../utils/strip-leading-dot.js";
 import {
@@ -138,7 +137,7 @@ export const extractChromiumCookies = async (
 
     const cookieRows = await querySqlite(tempDatabasePath, sql);
     const allowlist = options.names ? new Set(options.names) : null;
-    const currentTime = nowSeconds();
+    const currentTime = getEpochSeconds();
     const cookies: Cookie[] = [];
 
     for (const cookieRow of cookieRows) {

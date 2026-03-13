@@ -1,4 +1,5 @@
-import { MAX_UNIX_EPOCH_SECONDS, MS_PER_SECOND } from "../constants.js";
+import { MS_PER_SECOND } from "@browser-tester/utils";
+import { MAX_UNIX_EPOCH_SECONDS } from "../constants.js";
 import {
   CHROME_EPOCH_MICROSECONDS,
   CHROME_EPOCH_OFFSET_SECONDS,

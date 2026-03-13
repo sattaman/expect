@@ -1,8 +1,8 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import path from "node:path";
+import { execCommand } from "@browser-tester/utils";
 import type { BrowserInfo, BrowserProfile, LocalStateProfile } from "../types.js";
-import { execCommand } from "../utils/exec-command.js";
 import { naturalCompare } from "../utils/natural-sort.js";
 import { PROFILE_BROWSER_CONFIGS } from "./constants.js";
 

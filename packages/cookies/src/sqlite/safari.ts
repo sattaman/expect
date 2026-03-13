@@ -2,9 +2,9 @@ import { readFileSync } from "node:fs";
 import { homedir, platform } from "node:os";
 import path from "node:path";
 import type { Cookie, ExtractResult } from "../types.js";
+import { getEpochSeconds } from "@browser-tester/utils";
 import { formatWarning } from "../utils/format-warning.js";
 import { hostMatchesAny } from "../utils/host-matching.js";
-import { nowSeconds } from "../utils/now-seconds.js";
 import { stripLeadingDot } from "../utils/strip-leading-dot.js";
 import {
   BINARY_COOKIE_EXPIRATION_OFFSET,
@@ -183,7 +183,7 @@ export const extractSafariCookies = async (
     return { cookies: [], warnings };
   }
 
-  const now = nowSeconds();
+  const now = getEpochSeconds();
   const allowlist = options.names ? new Set(options.names) : null;
 
   try {

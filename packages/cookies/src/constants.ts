@@ -1,5 +1,3 @@
-export const DEFAULT_TIMEOUT_MS = 5000;
-export const MS_PER_SECOND = 1000;
 export const SESSION_EXPIRES = -1;
 export const SAME_SITE_NONE = 0;
 export const SAME_SITE_LAX = 1;

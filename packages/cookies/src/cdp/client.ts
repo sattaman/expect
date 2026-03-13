@@ -1,7 +1,6 @@
+import { formatError, sleep } from "@browser-tester/utils";
 import WebSocket from "ws";
 import type { CdpRawCookie, CdpResponse } from "../types.js";
-import { formatError } from "../utils/format-error.js";
-import { sleep } from "../utils/sleep.js";
 import { CDP_RETRY_COUNT, CDP_RETRY_DELAY_MS } from "./constants.js";
 
 interface CdpTarget {

@@ -1,6 +1,6 @@
 import { execSync } from "node:child_process";
 
-import { DEFAULT_TIMEOUT_MS } from "../constants.js";
+import { DEFAULT_TIMEOUT_MS } from "./constants";
 
 export const execCommand = (command: string, timeoutMs = DEFAULT_TIMEOUT_MS): string | null => {
   try {

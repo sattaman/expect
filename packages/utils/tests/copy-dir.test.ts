@@ -2,7 +2,7 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { copyDir } from "../src/utils/copy-dir.js";
+import { copyDir } from "../src/copy-dir";
 
 describe("copyDir", () => {
   let sourceDir: string;

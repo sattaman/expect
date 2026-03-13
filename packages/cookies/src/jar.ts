@@ -1,8 +1,8 @@
+import { getEpochSeconds } from "@browser-tester/utils";
 import { SESSION_EXPIRES } from "./constants.js";
 import type { Cookie, SameSitePolicy } from "./types.js";
 import { formatCookieHeader } from "./utils/format-cookie-header.js";
 import { hostMatchesCookieDomain } from "./utils/host-matching.js";
-import { nowSeconds } from "./utils/now-seconds.js";
 
 export interface PlaywrightCookie {
   name: string;
@@ -50,7 +50,7 @@ export class CookieJar {
     const parsed = new URL(url);
     const host = parsed.hostname;
     const pathname = parsed.pathname || "/";
-    const currentTime = nowSeconds();
+    const currentTime = getEpochSeconds();
 
     return this.cookies.filter((cookie) => {
       if (!hostMatchesCookieDomain(host, cookie.domain)) return false;
