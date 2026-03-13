@@ -106,7 +106,7 @@ export const ThemePickerScreen = ({ onBack }: ThemePickerScreenProps) => {
           return (
             <Text key={name}>
               <Text color={isSelected ? colors.ORANGE : colors.DIM}>
-                {isSelected ? "\u25B6 " : "  "}
+                {isSelected ? "❯ " : "  "}
               </Text>
               <ThemeSwatch theme={theme} />
               <Text> </Text>

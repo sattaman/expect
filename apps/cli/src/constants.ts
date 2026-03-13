@@ -10,7 +10,7 @@ export const AUTOMATED_ENVIRONMENT_VARIABLES = [
   "AMI",
 ];
 
-export const SELECTED_INDICATOR = "►";
+export const SELECTED_INDICATOR = "❯";
 
 export const SEARCH_PLACEHOLDER = "Search ...";
 

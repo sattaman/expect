@@ -22,7 +22,7 @@ export const MenuItem = ({
   const COLORS = useColors();
   return (
     <Text>
-      <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>{isSelected ? "▶ " : "  "}</Text>
+      <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>{isSelected ? "❯ " : "  "}</Text>
       <Text color={isSelected ? undefined : COLORS.DIM} bold={isSelected}>
         {label}
       </Text>
@@ -36,7 +36,7 @@ export const MenuItem = ({
       ) : detail ? (
         <Text color={COLORS.DIM}> {detail}</Text>
       ) : null}
-      {recommended && <Text color={COLORS.DIM}> (recommended)</Text>}
+      {recommended && <Text color={isSelected ? undefined : COLORS.DIM}> (recommended)</Text>}
       {hint && <Text color={COLORS.DIM}> ({hint})</Text>}
     </Text>
   );
