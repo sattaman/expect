@@ -114,10 +114,10 @@ export const ThemePickerScreen = () => {
             <Clickable key={name} onClick={() => setSelectedIndex(actualIndex)}>
               {isSelected ? (
                 <Text>
-                  <Text color={COLORS.ORANGE}>{figures.pointer} </Text>
+                  <Text color={COLORS.PRIMARY}>{figures.pointer} </Text>
                   <ThemeSwatch theme={theme} />
                   <Text> </Text>
-                  <Text backgroundColor={COLORS.ORANGE} color="#000000" bold>
+                  <Text backgroundColor={COLORS.PRIMARY} color="#000000" bold>
                     {" "}{theme.name}{" "}
                   </Text>
                 </Text>

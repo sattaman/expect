@@ -48,7 +48,7 @@ export const FlowInputScreen = () => {
         borderColor={COLORS.BORDER}
         paddingX={2}
       >
-        <Text color={COLORS.ORANGE}>{"❯ "}</Text>
+        <Text color={COLORS.PRIMARY}>{"❯ "}</Text>
         <Input
           focus
           multiline

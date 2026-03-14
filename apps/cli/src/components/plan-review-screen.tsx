@@ -46,7 +46,7 @@ const PlanStepRow = ({ step, selected, titleColumnWidth, onClick }: PlanStepRowP
     <Clickable onClick={onClick}>
       <Box flexDirection="column" marginTop={0}>
         <Text>
-          <Text color={selected ? COLORS.ORANGE : COLORS.DIM}>{selected ? "  ❯ " : "    "}</Text>
+          <Text color={selected ? COLORS.PRIMARY : COLORS.DIM}>{selected ? "  ❯ " : "    "}</Text>
           <Text color={COLORS.PURPLE} bold={selected}>
             {step.id.padEnd(STEP_ID_COLUMN_WIDTH)}
           </Text>

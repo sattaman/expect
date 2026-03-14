@@ -217,8 +217,8 @@ export const MainMenu = () => {
         <Clickable onClick={toggleAutoRun}>
           {selectedIndex === autoRunIndex ? (
             <Text>
-              <Text color={COLORS.ORANGE}>{figures.pointer} </Text>
-              <Text backgroundColor={COLORS.ORANGE} color="#000000" bold>
+              <Text color={COLORS.PRIMARY}>{figures.pointer} </Text>
+              <Text backgroundColor={COLORS.PRIMARY} color="#000000" bold>
                 {" "}
                 auto-run after planning: {autoRunAfterPlanning
                   ? "yes"

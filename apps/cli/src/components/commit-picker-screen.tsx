@@ -163,7 +163,7 @@ export const CommitPickerScreen = () => {
             subjectColumnWidth - truncatedSubject.length - (isSelected ? 2 : 0);
           return (
             <Clickable key={commit.hash} onClick={() => selectCommit(commit)}>
-              <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>
+              <Text color={isSelected ? COLORS.PRIMARY : COLORS.DIM}>
                 {isSelected ? `${figures.pointer} ` : "  "}
               </Text>
               <Text color={COLORS.PURPLE}>
@@ -171,7 +171,7 @@ export const CommitPickerScreen = () => {
               </Text>
               {isSelected ? (
                 <>
-                  <Text backgroundColor={COLORS.ORANGE} color="#000000" bold>
+                  <Text backgroundColor={COLORS.PRIMARY} color="#000000" bold>
                     {" "}
                     {truncatedSubject}{" "}
                   </Text>

@@ -39,25 +39,25 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         { key: "tab", label: "local/remote" },
         { key: "/", label: "search" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
+        { key: "enter", label: "select", color: COLORS.PRIMARY, cta: true },
       ];
     case "select-commit":
       return [
         { key: "↑↓", label: "nav" },
         { key: "/", label: "search" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
+        { key: "enter", label: "select", color: COLORS.PRIMARY, cta: true },
       ];
     case "saved-flow-picker":
       return [
         { key: "↑↓", label: "nav" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
+        { key: "enter", label: "select", color: COLORS.PRIMARY, cta: true },
       ];
     case "flow-input":
       return [
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "submit", color: COLORS.ORANGE, cta: true },
+        { key: "enter", label: "submit", color: COLORS.PRIMARY, cta: true },
       ];
     case "planning":
       return [{ key: "esc", label: "cancel", cta: true, onClick: goBack }];
@@ -71,7 +71,7 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         {
           key: "a",
           label: "approve",
-          color: COLORS.ORANGE,
+          color: COLORS.PRIMARY,
           cta: true,
           onClick: () => {
             if (generatedPlan) approvePlan(generatedPlan);
@@ -85,7 +85,7 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         { key: "↑↓", label: "nav" },
         { key: "tab", label: "light/dark" },
         { key: "esc", label: "cancel", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
+        { key: "enter", label: "select", color: COLORS.PRIMARY, cta: true },
       ];
     default:
       return [];

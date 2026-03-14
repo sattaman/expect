@@ -22,7 +22,7 @@ export const Collapsible = ({
   children,
 }: CollapsibleProps) => {
   const COLORS = useColors();
-  const indicatorColor = selected ? COLORS.ORANGE : COLORS.DIM;
+  const indicatorColor = selected ? COLORS.PRIMARY : COLORS.DIM;
   const contentColor = selected ? COLORS.TEXT : COLORS.DIM;
   const arrow = open ? figures.triangleDown : figures.triangleRight;
   const countSuffix = count !== undefined ? ` (${count})` : "";

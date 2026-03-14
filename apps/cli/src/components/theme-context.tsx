@@ -5,7 +5,7 @@ export interface Colors {
   TEXT: string;
   DIM: string;
   GREEN: string;
-  ORANGE: string;
+  PRIMARY: string;
   SELECTION: string;
   RED: string;
   BORDER: string;
@@ -19,7 +19,7 @@ const colorsFromTheme = (theme: ThemeDefinition): Colors => ({
   TEXT: theme.text,
   DIM: theme.textMuted,
   GREEN: theme.success,
-  ORANGE: theme.primary,
+  PRIMARY: theme.primary,
   SELECTION: theme.accent,
   RED: theme.error,
   BORDER: theme.border,

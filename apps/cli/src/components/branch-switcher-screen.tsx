@@ -238,12 +238,12 @@ export const BranchSwitcherScreen = () => {
                     storeSwitchBranch(branchName);
                   }}
                 >
-                  <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>
+                  <Text color={isSelected ? COLORS.PRIMARY : COLORS.DIM}>
                     {isSelected ? `${figures.pointer} ` : "  "}
                   </Text>
                   <Text
                     color={isSelected ? "#000000" : COLORS.DIM}
-                    backgroundColor={isSelected ? COLORS.ORANGE : undefined}
+                    backgroundColor={isSelected ? COLORS.PRIMARY : undefined}
                     bold={isSelected}
                   >
                     {isSelected ? " " : ""}

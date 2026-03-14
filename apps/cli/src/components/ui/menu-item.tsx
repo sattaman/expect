@@ -25,12 +25,12 @@ export const MenuItem = ({
   if (isSelected) {
     return (
       <Text>
-        <Text color={COLORS.ORANGE}>{figures.pointer} </Text>
-        <Text backgroundColor={COLORS.ORANGE} color="#000000" bold>
+        <Text color={COLORS.PRIMARY}>{figures.pointer} </Text>
+        <Text backgroundColor={COLORS.PRIMARY} color="#000000" bold>
           {" "}
           {label}
           {diffStats ? (
-            <Text backgroundColor={COLORS.ORANGE} color="#000000">
+            <Text backgroundColor={COLORS.PRIMARY} color="#000000">
               {" "}
               +{diffStats.additions} -{diffStats.deletions}
             </Text>
