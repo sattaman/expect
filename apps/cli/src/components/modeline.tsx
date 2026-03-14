@@ -39,25 +39,25 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         { key: "tab", label: "local/remote" },
         { key: "/", label: "search" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.GREEN, cta: true },
+        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
       ];
     case "select-commit":
       return [
         { key: "↑↓", label: "nav" },
         { key: "/", label: "search" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.GREEN, cta: true },
+        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
       ];
     case "saved-flow-picker":
       return [
         { key: "↑↓", label: "nav" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.GREEN, cta: true },
+        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
       ];
     case "flow-input":
       return [
         { key: "esc", label: "back", cta: true, onClick: goBack },
-        { key: "enter", label: "submit", color: COLORS.GREEN, cta: true },
+        { key: "enter", label: "submit", color: COLORS.ORANGE, cta: true },
       ];
     case "planning":
       return [{ key: "esc", label: "cancel", cta: true, onClick: goBack }];
@@ -71,7 +71,7 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         {
           key: "a",
           label: "approve",
-          color: COLORS.GREEN,
+          color: COLORS.ORANGE,
           cta: true,
           onClick: () => {
             if (generatedPlan) approvePlan(generatedPlan);
@@ -85,7 +85,7 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         { key: "↑↓", label: "nav" },
         { key: "tab", label: "light/dark" },
         { key: "esc", label: "cancel", cta: true, onClick: goBack },
-        { key: "enter", label: "select", color: COLORS.GREEN, cta: true },
+        { key: "enter", label: "select", color: COLORS.ORANGE, cta: true },
       ];
     default:
       return [];
@@ -115,7 +115,7 @@ export const Modeline = () => {
   const keybindText = getHintText(keybinds);
   const actionPills = actions
     .map((action) => ` ${action.key} ${action.label} `)
-    .join(" ");
+    .join("   ");
   const actionWidth = actions.length > 0 ? stringWidth(actionPills) : 0;
   const rightWidth = stringWidth(branchLabel) + stringWidth(keybindText);
   const gap = Math.max(0, columns - actionWidth - rightWidth - 2);
@@ -126,15 +126,18 @@ export const Modeline = () => {
       <Box paddingX={1}>
         {actions.map((action, index) => (
           <Text key={action.key + action.label}>
-            {index > 0 ? " " : ""}
-            <Text
-              backgroundColor={action.color ?? theme.border}
-              color="#000000"
-              bold
-            >
-              {" "}
-              {action.key} {action.label}{" "}
-            </Text>
+            {index > 0 ? "   " : ""}
+            {action.color ? (
+              <Text backgroundColor={action.color} color="#000000" bold>
+                {" "}
+                {action.key} {action.label}{" "}
+              </Text>
+            ) : (
+              <Text>
+                <Text color={theme.primary} bold>{action.key}</Text>
+                <Text color={theme.textMuted}> {action.label}</Text>
+              </Text>
+            )}
           </Text>
         ))}
         <Text>{" ".repeat(gap)}</Text>
