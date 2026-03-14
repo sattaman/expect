@@ -1,7 +1,7 @@
 import { formatError, sleep } from "@browser-tester/utils";
 import WebSocket from "ws";
 import type { CdpRawCookie, CdpResponse } from "../types.js";
-import { CDP_RETRY_COUNT, CDP_RETRY_DELAY_MS } from "./constants.js";
+import { CDP_COMMAND_TIMEOUT_MS, CDP_RETRY_COUNT, CDP_RETRY_DELAY_MS } from "./constants.js";
 
 interface CdpTarget {
   type: string;
@@ -46,6 +46,16 @@ const sendCdpCommand = (webSocketUrl: string, command: CdpCommand): Promise<CdpR
   new Promise((resolve, reject) => {
     const socket = new WebSocket(webSocketUrl);
 
+    const timeoutId = setTimeout(() => {
+      socket.close();
+      reject(new Error(`CDP command timed out after ${CDP_COMMAND_TIMEOUT_MS}ms`));
+    }, CDP_COMMAND_TIMEOUT_MS);
+
+    const cleanup = () => {
+      clearTimeout(timeoutId);
+      socket.close();
+    };
+
     socket.on("open", () => {
       socket.send(JSON.stringify(command));
     });
@@ -55,15 +65,16 @@ const sendCdpCommand = (webSocketUrl: string, command: CdpCommand): Promise<CdpR
         const parsedResponse = JSON.parse(rawMessage.toString()) as CdpResponse;
         if (parsedResponse.id !== command.id) return;
 
-        socket.close();
+        cleanup();
         resolve(parsedResponse);
       } catch (error) {
-        socket.close();
+        cleanup();
         reject(new Error(`failed to parse CDP response: ${formatError(error)}`));
       }
     });
 
     socket.on("error", (error: Error) => {
+      cleanup();
       reject(new Error(`CDP WebSocket error: ${error.message}`));
     });
   });

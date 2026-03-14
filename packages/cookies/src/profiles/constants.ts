@@ -14,6 +14,7 @@ export const SAFARI_EXECUTABLE = "/Applications/Safari.app/Contents/MacOS/Safari
 
 export const CDP_RETRY_COUNT = 10;
 export const CDP_RETRY_DELAY_MS = 1_000;
+export const CDP_COMMAND_TIMEOUT_MS = 10_000;
 export const CDP_LOCAL_PORT = 9222;
 export const BROWSER_STARTUP_DELAY_MS = 3_000;
 export const BROWSER_KILL_DELAY_MS = 500;
