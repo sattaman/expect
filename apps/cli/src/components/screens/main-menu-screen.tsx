@@ -2,21 +2,21 @@ import { useCallback, useEffect, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import stringWidth from "string-width";
-import { useColors } from "./theme-context.js";
-import { Clickable } from "./ui/clickable.js";
-import { MenuItem } from "./ui/menu-item.js";
+import { useColors } from "../theme-context.js";
+import { Clickable } from "../ui/clickable.js";
+import { MenuItem } from "../ui/menu-item.js";
 import type { DiffStats } from "@browser-tester/supervisor";
 import {
   getRecommendedScope,
   type GitState,
   type TestScope,
-} from "../utils/get-git-state.js";
+} from "../../utils/get-git-state.js";
 import {
   BROWSER_FRAME_BODY_HEIGHT,
   FRAME_CONTENT_PADDING,
   FRAME_DOTS_TRAILING_GAP,
-} from "../constants.js";
-import { useAppStore } from "../store.js";
+} from "../../constants.js";
+import { useAppStore } from "../../store.js";
 
 type MenuAction = "test-unstaged" | "test-branch" | "select-commit";
 

@@ -6,22 +6,22 @@ import {
   TESTING_TIMER_UPDATE_INTERVAL_MS,
   TESTING_TOOL_TEXT_CHAR_LIMIT,
   TESTING_VISIBLE_LOG_COUNT,
-} from "../constants.js";
-import { useColors, type Colors } from "./theme-context.js";
-import { Spinner } from "./ui/spinner.js";
-import { useAppStore } from "../store.js";
-import { ScreenHeading } from "./ui/screen-heading.js";
-import { truncateText } from "../utils/truncate-text.js";
-import { formatElapsedTime } from "../utils/format-elapsed-time.js";
+} from "../../constants.js";
+import { useColors, type Colors } from "../theme-context.js";
+import { Spinner } from "../ui/spinner.js";
+import { useAppStore } from "../../store.js";
+import { ScreenHeading } from "../ui/screen-heading.js";
+import { truncateText } from "../../utils/truncate-text.js";
+import { formatElapsedTime } from "../../utils/format-elapsed-time.js";
 import {
   formatBrowserToolCall,
   formatBrowserToolResult,
-} from "../utils/format-browser-tool-call.js";
-import { extractScreenshotPath } from "../utils/extract-screenshot-path.js";
-import { Image } from "./ui/image.js";
-import { FileLink } from "./ui/file-link.js";
-import { ErrorMessage } from "./ui/error-message.js";
-import { Clickable } from "./ui/clickable.js";
+} from "../../utils/format-browser-tool-call.js";
+import { extractScreenshotPath } from "../../utils/extract-screenshot-path.js";
+import { Image } from "../ui/image.js";
+import { FileLink } from "../ui/file-link.js";
+import { ErrorMessage } from "../ui/error-message.js";
+import { Clickable } from "../ui/clickable.js";
 
 interface TestingLine {
   text: string;

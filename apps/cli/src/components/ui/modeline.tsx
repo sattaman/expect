@@ -1,10 +1,10 @@
 import { Box, Text } from "ink";
-import { useStdoutDimensions } from "../hooks/use-stdout-dimensions.js";
+import { useStdoutDimensions } from "../../hooks/use-stdout-dimensions.js";
 import stringWidth from "string-width";
-import { useColors, useThemeContext } from "./theme-context.js";
-import { HintBar, HINT_SEPARATOR, type HintSegment } from "./ui/hint-bar.js";
-import { useAppStore, type Screen } from "../store.js";
-import { Clickable } from "./ui/clickable.js";
+import { useColors, useThemeContext } from "../theme-context.js";
+import { HintBar, HINT_SEPARATOR, type HintSegment } from "./hint-bar.js";
+import { useAppStore, type Screen } from "../../store.js";
+import { Clickable } from "./clickable.js";
 
 const useHintSegments = (screen: Screen): HintSegment[] => {
   const COLORS = useColors();
