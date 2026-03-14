@@ -2,7 +2,7 @@ import { Command } from "commander";
 import { render } from "ink";
 import { App } from "./app.js";
 import { ALT_SCREEN_OFF, ALT_SCREEN_ON, VERSION } from "./constants.js";
-import { ThemeProvider } from "./components/theme-context.js";
+import { ThemeProvider } from "./theme-context.js";
 import { loadThemeName } from "./utils/load-theme.js";
 import { isRunningInAgent } from "./utils/is-running-in-agent.js";
 import { getCommitSummary } from "@browser-tester/supervisor";
