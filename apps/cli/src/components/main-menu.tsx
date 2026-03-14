@@ -8,10 +8,9 @@ import { MenuItem } from "./ui/menu-item.js";
 import type { DiffStats } from "@browser-tester/supervisor";
 import { getRecommendedScope, type GitState, type TestScope } from "../utils/get-git-state.js";
 import {
+  BROWSER_FRAME_BODY_HEIGHT,
   FRAME_CONTENT_PADDING,
   FRAME_DOTS_TRAILING_GAP,
-  FRAME_TITLE_DECORATION_WIDTH,
-  MENU_ITEM_PREFIX_WIDTH,
 } from "../constants.js";
 import { useAppStore } from "../store.js";
 
@@ -36,7 +35,10 @@ const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption
     });
   }
 
-  if (scope === "entire-branch" || (scope === "unstaged-changes" && !gitState.isOnMain && gitState.hasBranchCommits)) {
+  if (
+    scope === "entire-branch" ||
+    (scope === "unstaged-changes" && !gitState.isOnMain && gitState.hasBranchCommits)
+  ) {
     options.push({
       label: "Test entire branch",
       detail: `(${gitState.currentBranch})`,
@@ -109,79 +111,25 @@ export const MainMenu = () => {
     }
   });
 
-  const getMenuItemMaxWidth = (option: ScopeMenuOption, index: number): number => {
-    let width = MENU_ITEM_PREFIX_WIDTH;
-    width += option.label.length;
-    if (option.diffStats) {
-      width += ` +${option.diffStats.additions} -${option.diffStats.deletions}`.length;
-    } else if (option.detail) {
-      width += ` ${option.detail}`.length;
-    }
-    if (index === 0 && menuOptions.length > 1) {
-      width += " (recommended)".length;
-    }
-    if (menuOptions.length === 1) {
-      width += " (press return)".length;
-    }
-    return width;
-  };
-
-  const getMenuItemRenderedWidth = (option: ScopeMenuOption, index: number): number => {
-    const isSelected = index === selectedIndex;
-    let width = MENU_ITEM_PREFIX_WIDTH;
-    width += option.label.length;
-    if (isSelected && option.diffStats) {
-      width += ` +${option.diffStats.additions} -${option.diffStats.deletions}`.length;
-    } else if (option.detail) {
-      width += ` ${option.detail}`.length;
-    }
-    if (isSelected && index === 0 && menuOptions.length > 1) {
-      width += " (recommended)".length;
-    }
-    if (menuOptions.length === 1 && isSelected) {
-      width += " (press return)".length;
-    }
-    return width;
-  };
-
   const dots = `${figures.circleFilled} ${figures.circleFilled} ${figures.circleFilled}`;
   const titleLabel = "browser-tester";
-  const actionsLine = " Actions";
-  const optionsLine = " Options";
-  const autoRunLine = `  auto-run after planning (⇥ tab): ${autoRunAfterPlanning ? "yes" : "no"}`;
+  const fillChar = "\u00B7";
 
   const inner =
-    Math.max(
-      titleLabel.length + FRAME_TITLE_DECORATION_WIDTH,
-      actionsLine.length,
-      optionsLine.length,
-      autoRunLine.length,
-      stringWidth(dots) + FRAME_DOTS_TRAILING_GAP,
-      ...menuOptions.map((option, index) => getMenuItemMaxWidth(option, index)),
-    ) + FRAME_CONTENT_PADDING;
-  const padToInnerWidth = (content: string) => " ".repeat(Math.max(0, inner - content.length));
-  const emptyRow = (
-    <Text color={COLORS.DIM}>
-      {"│"}
-      {" ".repeat(inner)}
-      {"│"}
-    </Text>
-  );
+    Math.max(titleLabel.length + 4, stringWidth(dots) + FRAME_DOTS_TRAILING_GAP) +
+    FRAME_CONTENT_PADDING;
+
+  const fillRow = `${fillChar} `.repeat(Math.ceil(inner / 2)).slice(0, inner);
+  const topRows = Math.floor((BROWSER_FRAME_BODY_HEIGHT - 1) / 2);
+  const bottomRows = BROWSER_FRAME_BODY_HEIGHT - 1 - topRows;
+  const labelPadLeft = Math.floor((inner - stringWidth(titleLabel)) / 2);
+  const labelPadRight = inner - stringWidth(titleLabel) - labelPadLeft;
 
   return (
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <Text color={COLORS.DIM}>
         {"╭"}
-        {"─".repeat(Math.floor((inner - titleLabel.length - FRAME_TITLE_DECORATION_WIDTH) / 2))}
-        {"·"}{" "}
-        <Text bold color={COLORS.TEXT}>
-          {titleLabel}
-        </Text>
-        <Text color={COLORS.DIM}>
-          {" "}
-          {"·"}
-          {"─".repeat(Math.ceil((inner - titleLabel.length - FRAME_TITLE_DECORATION_WIDTH) / 2))}
-        </Text>
+        {"─".repeat(inner)}
         {"╮"}
       </Text>
       <Text color={COLORS.DIM}>
@@ -192,69 +140,75 @@ export const MainMenu = () => {
         {" ".repeat(inner - stringWidth(dots) - FRAME_DOTS_TRAILING_GAP)}
         {"│"}
       </Text>
-      {emptyRow}
-      <Text color={COLORS.DIM}>
-        {"│ "}
-        <Text bold color={COLORS.TEXT}>
-          Actions
-        </Text>
-        {padToInnerWidth(" Actions")}
-        {"│"}
-      </Text>
-      {menuOptions.map((option, index) => {
-        const itemWidth = getMenuItemRenderedWidth(option, index);
-        return (
-          <Clickable key={option.label} onClick={() => activateOption(option)}>
-            <Text color={COLORS.DIM}>{"│"}</Text>
-            <MenuItem
-              label={option.label}
-              detail={option.detail}
-              isSelected={index === selectedIndex}
-              recommended={index === 0 && menuOptions.length > 1}
-              hint={
-                menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined
-              }
-              diffStats={option.diffStats}
-            />
-            <Text color={COLORS.DIM}>
-              {" ".repeat(Math.max(0, inner - itemWidth))}
-              {"│"}
-            </Text>
-          </Clickable>
-        );
-      })}
-      {emptyRow}
-      {emptyRow}
-      <Text color={COLORS.DIM}>
-        {"│ "}
-        <Text bold color={COLORS.TEXT}>
-          Options
-        </Text>
-        {padToInnerWidth(optionsLine)}
-        {"│"}
-      </Text>
-      <Clickable onClick={toggleAutoRun}>
-        <Text color={COLORS.DIM}>{"│  "}</Text>
-        <Text color={autoRunAfterPlanning ? COLORS.TEXT : COLORS.DIM} bold={autoRunAfterPlanning}>
-          auto-run after planning (<Text color={COLORS.TEXT}>⇥ tab</Text>):{" "}
-          <Text
-            color={autoRunAfterPlanning ? COLORS.GREEN : COLORS.DIM}
-            bold={autoRunAfterPlanning}
-          >
-            {autoRunAfterPlanning ? "yes" : "no"}
-          </Text>
-        </Text>
-        <Text color={COLORS.DIM}>
-          {padToInnerWidth(autoRunLine)}
+      {Array.from({ length: topRows }).map((_, index) => (
+        <Text key={`top-${index}`} color={COLORS.DIM}>
+          {"│"}
+          {fillRow}
           {"│"}
         </Text>
-      </Clickable>
-      {emptyRow}
+      ))}
+      <Text color={COLORS.DIM}>
+        {"│"}
+        {fillRow.slice(0, labelPadLeft)}
+        <Text bold color={COLORS.TEXT}>
+          {titleLabel}
+        </Text>
+        <Text color={COLORS.DIM}>
+          {fillRow.slice(0, labelPadRight)}
+          {"│"}
+        </Text>
+      </Text>
+      {Array.from({ length: bottomRows }).map((_, index) => (
+        <Text key={`bot-${index}`} color={COLORS.DIM}>
+          {"│"}
+          {fillRow}
+          {"│"}
+        </Text>
+      ))}
       <Text color={COLORS.DIM}>
         {"╰"}
         {"─".repeat(inner)}
         {"╯"}
       </Text>
+
+      <Box marginTop={1} flexDirection="column">
+        <Text bold color={COLORS.TEXT}>
+          {" "}Actions
+        </Text>
+        {menuOptions.map((option, index) => {
+          return (
+            <Clickable key={option.label} onClick={() => activateOption(option)}>
+              <MenuItem
+                label={option.label}
+                detail={option.detail}
+                isSelected={index === selectedIndex}
+                recommended={index === 0 && menuOptions.length > 1}
+                hint={
+                  menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined
+                }
+                diffStats={option.diffStats}
+              />
+            </Clickable>
+          );
+        })}
+      </Box>
+
+      <Box marginTop={1} marginBottom={1} flexDirection="column">
+        <Text bold color={COLORS.TEXT}>
+          {" "}Options
+        </Text>
+        <Clickable onClick={toggleAutoRun}>
+          <Text color={autoRunAfterPlanning ? COLORS.TEXT : COLORS.DIM} bold={autoRunAfterPlanning}>
+            {"  "}auto-run after planning (<Text color={COLORS.TEXT}>⇥ tab</Text>):{" "}
+            <Text
+              color={autoRunAfterPlanning ? COLORS.GREEN : COLORS.DIM}
+              bold={autoRunAfterPlanning}
+            >
+              {autoRunAfterPlanning ? "yes" : "no"}
+            </Text>
+          </Text>
+        </Clickable>
+      </Box>
     </Box>
   );
 };

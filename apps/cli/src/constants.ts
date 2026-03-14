@@ -35,5 +35,6 @@ export const TABLE_COLUMN_GAP = 2;
 export const SECTION_INDENT = 4;
 export const LAYOUT_ORIGIN_OFFSET = 1;
 export const FRAME_DOTS_TRAILING_GAP = 1;
+export const BROWSER_FRAME_BODY_HEIGHT = 4;
 export const ALT_SCREEN_ON = "\u001b[?1049h\u001b[2J\u001b[H";
 export const ALT_SCREEN_OFF = "\u001b[?1049l";
