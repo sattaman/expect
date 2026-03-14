@@ -135,6 +135,11 @@ export const CommitPickerScreen = () => {
         {visibleCommits.map((commit, index) => {
           const actualIndex = index + scrollOffset;
           const isSelected = actualIndex === highlightedIndex;
+          const truncatedSubject = truncateText(
+            commit.subject,
+            subjectColumnWidth - (isSelected ? 4 : 1),
+          );
+          const subjectGap = subjectColumnWidth - truncatedSubject.length - (isSelected ? 2 : 0);
           return (
             <Clickable key={commit.hash} onClick={() => selectCommit(commit)}>
               <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>
@@ -143,18 +148,18 @@ export const CommitPickerScreen = () => {
               <Text color={COLORS.PURPLE}>
                 {visualPadEnd(commit.shortHash, COMMIT_HASH_COLUMN_WIDTH)}
               </Text>
-              <Text
-                color={isSelected ? "#000000" : COLORS.DIM}
-                backgroundColor={isSelected ? COLORS.ORANGE : undefined}
-                bold={isSelected}
-              >
-                {isSelected ? " " : ""}
-                {visualPadEnd(
-                  truncateText(commit.subject, subjectColumnWidth - (isSelected ? 3 : 1)),
-                  subjectColumnWidth - (isSelected ? 2 : 0),
-                )}
-                {isSelected ? " " : ""}
-              </Text>
+              {isSelected ? (
+                <>
+                  <Text backgroundColor={COLORS.ORANGE} color="#000000" bold>
+                    {" "}{truncatedSubject}{" "}
+                  </Text>
+                  <Text>{"".padEnd(Math.max(0, subjectGap))}</Text>
+                </>
+              ) : (
+                <Text color={COLORS.DIM}>
+                  {visualPadEnd(truncatedSubject, subjectColumnWidth)}
+                </Text>
+              )}
               <Text color={COLORS.CYAN}>
                 {visualPadEnd(
                   truncateText(commit.author, COMMIT_AUTHOR_COLUMN_WIDTH - 1),

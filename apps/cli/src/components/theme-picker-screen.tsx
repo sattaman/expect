@@ -134,11 +134,6 @@ export const ThemePickerScreen = () => {
         })}
       </Box>
 
-      <Box marginTop={1}>
-        <Text color={COLORS.DIM}>
-          {"\u2191/\u2193"} navigate {"\u00B7"} Enter select {"\u00B7"} Esc cancel
-        </Text>
-      </Box>
     </Box>
   );
 };

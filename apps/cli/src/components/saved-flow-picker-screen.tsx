@@ -119,10 +119,6 @@ export const SavedFlowPickerScreen = () => {
           <Text color={COLORS.RED}>{loadingError}</Text>
         </Box>
       ) : null}
-
-      <Box marginTop={1}>
-        <Text color={COLORS.DIM}>↑/↓ navigate · Enter select · Esc back</Text>
-      </Box>
     </Box>
   );
 };

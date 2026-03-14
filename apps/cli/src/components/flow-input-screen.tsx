@@ -58,10 +58,6 @@ export const FlowInputScreen = () => {
           <Text color={COLORS.RED}>{errorMessage}</Text>
         </Box>
       ) : null}
-
-      <Box marginTop={1}>
-        <Text color={COLORS.DIM}>Enter plan flow · Esc back</Text>
-      </Box>
     </Box>
   );
 };
