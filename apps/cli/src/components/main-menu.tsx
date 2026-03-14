@@ -6,7 +6,11 @@ import { useColors } from "./theme-context.js";
 import { Clickable } from "./ui/clickable.js";
 import { MenuItem } from "./ui/menu-item.js";
 import type { DiffStats } from "@browser-tester/supervisor";
-import { getRecommendedScope, type GitState, type TestScope } from "../utils/get-git-state.js";
+import {
+  getRecommendedScope,
+  type GitState,
+  type TestScope,
+} from "../utils/get-git-state.js";
 import {
   BROWSER_FRAME_BODY_HEIGHT,
   FRAME_CONTENT_PADDING,
@@ -23,7 +27,10 @@ interface ScopeMenuOption {
   diffStats?: DiffStats | null;
 }
 
-const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption[] => {
+const buildMenuOptions = (
+  scope: TestScope,
+  gitState: GitState
+): ScopeMenuOption[] => {
   const options: ScopeMenuOption[] = [];
 
   if (scope === "unstaged-changes") {
@@ -37,7 +44,9 @@ const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption
 
   if (
     scope === "entire-branch" ||
-    (scope === "unstaged-changes" && !gitState.isOnMain && gitState.hasBranchCommits)
+    (scope === "unstaged-changes" &&
+      !gitState.isOnMain &&
+      gitState.hasBranchCommits)
   ) {
     options.push({
       label: "Test entire branch",
@@ -46,7 +55,11 @@ const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption
     });
   }
 
-  options.push({ label: "Select a commit to test", detail: "", action: "select-commit" });
+  options.push({
+    label: "Select a commit to test",
+    detail: "",
+    action: "select-commit",
+  });
 
   return options;
 };
@@ -54,7 +67,9 @@ const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption
 export const MainMenu = () => {
   const COLORS = useColors();
   const gitState = useAppStore((state) => state.gitState);
-  const autoRunAfterPlanning = useAppStore((state) => state.autoRunAfterPlanning);
+  const autoRunAfterPlanning = useAppStore(
+    (state) => state.autoRunAfterPlanning
+  );
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
   const selectAction = useAppStore((state) => state.selectAction);
   const beginSavedFlowReuse = useAppStore((state) => state.beginSavedFlowReuse);
@@ -67,7 +82,8 @@ export const MainMenu = () => {
   const recommendedScope = getRecommendedScope(gitState);
   const menuOptions = buildMenuOptions(recommendedScope, gitState);
   const selectedOption = menuOptions[selectedIndex] ?? null;
-  const canReuseSavedFlow = savedFlowSummaries.length > 0 && Boolean(selectedOption);
+  const canReuseSavedFlow =
+    savedFlowSummaries.length > 0 && Boolean(selectedOption);
 
   const activateOption = useCallback(
     (option: ScopeMenuOption) => {
@@ -77,12 +93,14 @@ export const MainMenu = () => {
         selectAction(option.action);
       }
     },
-    [navigateTo, selectAction],
+    [navigateTo, selectAction]
   );
 
   useInput((input, key) => {
     if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
-      setSelectedIndex((previous) => Math.min(menuOptions.length - 1, previous + 1));
+      setSelectedIndex((previous) =>
+        Math.min(menuOptions.length - 1, previous + 1)
+      );
     }
     if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
       setSelectedIndex((previous) => Math.max(0, previous - 1));
@@ -97,7 +115,10 @@ export const MainMenu = () => {
     }
 
     if (input === "r" && canReuseSavedFlow && selectedOption) {
-      if (selectedOption.action === "test-unstaged" || selectedOption.action === "test-branch") {
+      if (
+        selectedOption.action === "test-unstaged" ||
+        selectedOption.action === "test-branch"
+      ) {
         beginSavedFlowReuse(selectedOption.action);
       }
 
@@ -116,8 +137,10 @@ export const MainMenu = () => {
   const fillChar = "\u00B7";
 
   const inner =
-    Math.max(titleLabel.length + 4, stringWidth(dots) + FRAME_DOTS_TRAILING_GAP) +
-    FRAME_CONTENT_PADDING;
+    Math.max(
+      titleLabel.length + 4,
+      stringWidth(dots) + FRAME_DOTS_TRAILING_GAP
+    ) + FRAME_CONTENT_PADDING;
 
   const fillRow = `${fillChar} `.repeat(Math.ceil(inner / 2)).slice(0, inner);
   const topRows = Math.floor((BROWSER_FRAME_BODY_HEIGHT - 1) / 2);
@@ -173,18 +196,24 @@ export const MainMenu = () => {
 
       <Box marginTop={1} flexDirection="column">
         <Text bold color={COLORS.TEXT}>
-          {" "}Actions
+          {" "}
+          Actions
         </Text>
         {menuOptions.map((option, index) => {
           return (
-            <Clickable key={option.label} onClick={() => activateOption(option)}>
+            <Clickable
+              key={option.label}
+              onClick={() => activateOption(option)}
+            >
               <MenuItem
                 label={option.label}
                 detail={option.detail}
                 isSelected={index === selectedIndex}
                 recommended={index === 0 && menuOptions.length > 1}
                 hint={
-                  menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined
+                  menuOptions.length === 1 && index === selectedIndex
+                    ? "press return"
+                    : undefined
                 }
                 diffStats={option.diffStats}
               />
@@ -195,11 +224,16 @@ export const MainMenu = () => {
 
       <Box marginTop={1} marginBottom={1} flexDirection="column">
         <Text bold color={COLORS.TEXT}>
-          {" "}Options
+          {" "}
+          Options
         </Text>
         <Clickable onClick={toggleAutoRun}>
-          <Text color={autoRunAfterPlanning ? COLORS.TEXT : COLORS.DIM} bold={autoRunAfterPlanning}>
-            {"  "}auto-run after planning (<Text color={COLORS.TEXT}>⇥ tab</Text>):{" "}
+          <Text
+            color={autoRunAfterPlanning ? COLORS.TEXT : COLORS.DIM}
+            bold={autoRunAfterPlanning}
+          >
+            {"  "}auto-run after planning (
+            <Text color={COLORS.TEXT}>⇥ tab</Text>):{" "}
             <Text
               color={autoRunAfterPlanning ? COLORS.GREEN : COLORS.DIM}
               bold={autoRunAfterPlanning}
