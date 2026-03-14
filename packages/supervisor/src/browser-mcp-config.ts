@@ -1,16 +1,11 @@
-import { createRequire } from "node:module";
-import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { DEFAULT_BROWSER_MCP_SERVER_NAME } from "./constants.js";
 import type { AgentProviderSettings, McpServerConfig } from "@browser-tester/agent";
 
-const require = createRequire(import.meta.url);
-
 export const BROWSER_TESTER_VIDEO_OUTPUT_ENV_NAME = "BROWSER_TESTER_VIDEO_OUTPUT_PATH";
 
-export const getBrowserMcpEntrypoint = (): string => {
-  const mcpPackageEntrypoint = require.resolve("@browser-tester/mcp");
-  return join(dirname(mcpPackageEntrypoint), "start.js");
-};
+export const getBrowserMcpEntrypoint = (): string =>
+  fileURLToPath(import.meta.resolve("@browser-tester/mcp/start"));
 
 export const buildBrowserMcpServerEnv = (options: {
   videoOutputPath?: string;
