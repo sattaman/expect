@@ -56,15 +56,15 @@ importers:
       ink-text-input:
         specifier: ^6.0.0
         version: 6.0.0(ink@6.8.0(@types/react@19.2.14)(react@19.2.4))(react@19.2.4)
-      ink-use-stdout-dimensions:
-        specifier: ^1.0.5
-        version: 1.0.5(ink@6.8.0(@types/react@19.2.14)(react@19.2.4))(react@19.2.4)
       react:
         specifier: ^19.2.4
         version: 19.2.4
       string-width:
         specifier: ^8.2.0
         version: 8.2.0
+      term-mouse:
+        specifier: ^0.2.2
+        version: 0.2.2
       zod:
         specifier: ^4.3.6
         version: 4.3.6
@@ -2147,12 +2147,6 @@ packages:
       ink: '>=5'
       react: '>=18'
 
-  ink-use-stdout-dimensions@1.0.5:
-    resolution: {integrity: sha512-rVsqnw4tQEAJUoknU09+zHdDf30GJdkumkHr0iz/TOYMYEZJkYqziQSGJAM+Z+M603EDfO89+Nxyn/Ko2Zknfw==}
-    peerDependencies:
-      ink: '>=2.0.0'
-      react: '>=16.0.0'
-
   ink@6.8.0:
     resolution: {integrity: sha512-sbl1RdLOgkO9isK42WCZlJCFN9hb++sX9dsklOvfd1YQ3bQ2AiFu12Q6tFlr0HvEUvzraJntQCCpfEoUe9DSzA==}
     engines: {node: '>=20'}
@@ -2811,6 +2805,9 @@ packages:
   tapable@2.3.0:
     resolution: {integrity: sha512-g9ljZiwki/LfxmQADO3dEY1CbpmXT5Hm2fJ+QaGKwSXUylMybePR7/67YW7jOrrvjEgL1Fmz5kzyAjWVWLlucg==}
     engines: {node: '>=6'}
+
+  term-mouse@0.2.2:
+    resolution: {integrity: sha512-gtQom/4CSGQLC1xsEdes7JVItp1bmcKx8S5m+fgeN07jWw2j3r4TWHQyjO6eNYvHxbPf/upYxiEPESNF2J96Dw==}
 
   term-size@2.2.1:
     resolution: {integrity: sha512-wK0Ri4fOGjv/XPy8SBHZChl8CM7uMc5VML7SqiQ0zG7+J5Vr+RMQDoHa2CNT6KHUnTGIXH34UDMkPzAUyapBZg==}
@@ -4794,11 +4791,6 @@ snapshots:
       react: 19.2.4
       type-fest: 4.41.0
 
-  ink-use-stdout-dimensions@1.0.5(ink@6.8.0(@types/react@19.2.14)(react@19.2.4))(react@19.2.4):
-    dependencies:
-      ink: 6.8.0(@types/react@19.2.14)(react@19.2.4)
-      react: 19.2.4
-
   ink@6.8.0(@types/react@19.2.14)(react@19.2.4):
     dependencies:
       '@alcalzone/ansi-tokenize': 0.2.5
@@ -5419,6 +5411,8 @@ snapshots:
   tailwindcss@4.2.1: {}
 
   tapable@2.3.0: {}
+
+  term-mouse@0.2.2: {}
 
   term-size@2.2.1: {}
 

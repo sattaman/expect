@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import figures from "figures";
 import { executeBrowserFlow, type BrowserRunEvent } from "@browser-tester/supervisor";
 import { TESTING_TOOL_TEXT_CHAR_LIMIT, TESTING_VISIBLE_LOG_COUNT } from "../constants.js";
 import { useColors, type Colors } from "./theme-context.js";
@@ -22,17 +23,17 @@ const formatRunEvent = (event: BrowserRunEvent, colors: Colors): TestingLine | n
       };
     case "step-started":
       return {
-        text: `→ ${event.stepId} ${event.title}`,
+        text: `${figures.arrowRight} ${event.stepId} ${event.title}`,
         color: colors.SELECTION,
       };
     case "step-completed":
       return {
-        text: `✓ ${event.stepId} ${truncateText(event.summary, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
+        text: `${figures.tick} ${event.stepId} ${truncateText(event.summary, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
         color: colors.GREEN,
       };
     case "assertion-failed":
       return {
-        text: `✗ ${event.stepId} ${truncateText(event.message, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
+        text: `${figures.cross} ${event.stepId} ${truncateText(event.message, TESTING_TOOL_TEXT_CHAR_LIMIT)}`,
         color: colors.RED,
       };
     case "tool-call": {

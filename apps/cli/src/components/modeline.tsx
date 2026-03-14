@@ -1,7 +1,9 @@
 import { Box, Text } from "ink";
-import useStdoutDimensions from "ink-use-stdout-dimensions";
+import { useStdoutDimensions } from "../hooks/use-stdout-dimensions.js";
+import stringWidth from "string-width";
 import { useThemeContext } from "./theme-context.js";
 import { STATUSBAR_BRANCH_PADDING, STATUSBAR_TRAILING_PADDING } from "../constants.js";
+import { visualPadEnd } from "../utils/visual-pad-end.js";
 import { useAppStore, type Screen } from "../store.js";
 
 const SCREEN_HINTS: Record<Screen, string> = {
@@ -25,10 +27,7 @@ export const Modeline = () => {
 
   const hints = SCREEN_HINTS[screen] ?? "";
   const remaining =
-    columns -
-    STATUSBAR_BRANCH_PADDING -
-    gitState.currentBranch.length -
-    STATUSBAR_TRAILING_PADDING;
+    columns - STATUSBAR_BRANCH_PADDING - stringWidth(gitState.currentBranch) - STATUSBAR_TRAILING_PADDING;
 
   return (
     <Box>
@@ -37,7 +36,7 @@ export const Modeline = () => {
         {gitState.currentBranch}{" "}
       </Text>
       <Text backgroundColor={theme.border} color={theme.text}>
-        {(hints ? ` ${hints}` : "").padEnd(remaining)}
+        {visualPadEnd(hints ? ` ${hints}` : "", remaining)}
       </Text>
     </Box>
   );

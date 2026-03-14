@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Box, Text, useInput } from "ink";
+import figures from "figures";
+import stringWidth from "string-width";
 import { useColors } from "./theme-context.js";
 import { MenuItem } from "./ui/menu-item.js";
 import type { DiffStats } from "@browser-tester/supervisor";
@@ -139,7 +141,7 @@ export const MainMenu = () => {
     return width;
   };
 
-  const dots = "● ● ●";
+  const dots = `${figures.circleFilled} ${figures.circleFilled} ${figures.circleFilled}`;
   const titleLabel = "browser-tester";
   const actionsLine = " Actions";
   const optionsLine = " Options";
@@ -151,7 +153,7 @@ export const MainMenu = () => {
       actionsLine.length,
       optionsLine.length,
       autoRunLine.length,
-      dots.length + 1,
+      stringWidth(dots) + 1,
       ...menuOptions.map((option, index) => getMenuItemMaxWidth(option, index)),
     ) + FRAME_CONTENT_PADDING;
   const pad = (content: string) => " ".repeat(Math.max(0, inner - content.length));
@@ -181,10 +183,10 @@ export const MainMenu = () => {
       </Text>
       <Text color={COLORS.DIM}>
         {"│ "}
-        <Text color="#ff5f57">{"● "}</Text>
-        <Text color="#febc2e">{"● "}</Text>
-        <Text color="#28c840">{"●"}</Text>
-        {" ".repeat(inner - dots.length - 1)}
+        <Text color="#ff5f57">{`${figures.circleFilled} `}</Text>
+        <Text color="#febc2e">{`${figures.circleFilled} `}</Text>
+        <Text color="#28c840">{figures.circleFilled}</Text>
+        {" ".repeat(inner - stringWidth(dots) - 1)}
         {"│"}
       </Text>
       {emptyRow}

@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import figures from "figures";
 import { THEMES, type ThemeDefinition } from "../themes.js";
 import { useColors, useThemeContext } from "./theme-context.js";
 import { THEME_PICKER_VISIBLE_COUNT } from "../constants.js";
 import { saveThemeName } from "../utils/load-theme.js";
+import { useScrollableList } from "../hooks/use-scrollable-list.js";
 import { useAppStore } from "../store.js";
 
 type VariantFilter = "light" | "dark";
@@ -30,26 +32,25 @@ export const ThemePickerScreen = () => {
   const currentVariant = THEMES[themeName]?.variant ?? "dark";
   const [variantFilter, setVariantFilter] = useState<VariantFilter>(currentVariant);
 
-  const filteredThemeNames = useMemo(() => filterThemes(variantFilter), [variantFilter]);
+  const filteredThemeNames = filterThemes(variantFilter);
 
-  const [selectedIndex, setSelectedIndex] = useState(() => {
-    const index = filteredThemeNames.indexOf(themeName);
-    return index >= 0 ? index : 0;
+  const {
+    highlightedIndex: selectedIndex,
+    scrollOffset,
+    handleNavigation,
+  } = useScrollableList({
+    itemCount: filteredThemeNames.length,
+    visibleCount: THEME_PICKER_VISIBLE_COUNT,
+    initialIndex: () => {
+      const index = filteredThemeNames.indexOf(themeName);
+      return index >= 0 ? index : 0;
+    },
   });
 
   useEffect(() => {
-    const clamped = Math.min(selectedIndex, filteredThemeNames.length - 1);
-    if (clamped !== selectedIndex) setSelectedIndex(clamped);
-    const nextTheme = filteredThemeNames[clamped];
+    const nextTheme = filteredThemeNames[selectedIndex];
     if (nextTheme) setTheme(nextTheme);
   }, [selectedIndex, setTheme, filteredThemeNames]);
-
-  const scrollOffset = useMemo(() => {
-    if (filteredThemeNames.length <= THEME_PICKER_VISIBLE_COUNT) return 0;
-    const half = Math.floor(THEME_PICKER_VISIBLE_COUNT / 2);
-    const maxOffset = filteredThemeNames.length - THEME_PICKER_VISIBLE_COUNT;
-    return Math.min(maxOffset, Math.max(0, selectedIndex - half));
-  }, [selectedIndex, filteredThemeNames]);
 
   const visibleThemes = filteredThemeNames.slice(
     scrollOffset,
@@ -57,12 +58,8 @@ export const ThemePickerScreen = () => {
   );
 
   useInput((input, key) => {
-    if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
-      setSelectedIndex((previous) => Math.min(filteredThemeNames.length - 1, previous + 1));
-    }
-    if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
-      setSelectedIndex((previous) => Math.max(0, previous - 1));
-    }
+    if (handleNavigation(input, key)) return;
+
     if (key.tab) {
       setVariantFilter((previous) => (previous === "light" ? "dark" : "light"));
     }
@@ -103,7 +100,7 @@ export const ThemePickerScreen = () => {
           return (
             <Text key={name}>
               <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>
-                {isSelected ? "❯ " : "  "}
+                {isSelected ? `${figures.pointer} ` : "  "}
               </Text>
               <ThemeSwatch theme={theme} />
               <Text> </Text>

@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
+import figures from "figures";
 import TextInput from "ink-text-input";
 import { useColors } from "./theme-context.js";
 import { saveFlow } from "../utils/save-flow.js";
@@ -152,7 +153,7 @@ export const PlanReviewScreen = () => {
       <Box flexDirection="column" marginTop={1}>
         {plan.steps.map((step, index) => (
           <Text key={step.id} color={index === selectedIndex ? COLORS.SELECTION : COLORS.TEXT}>
-            {index === selectedIndex ? "➤" : " "} {step.id} {step.title}
+            {index === selectedIndex ? figures.pointer : " "} {step.id} {step.title}
           </Text>
         ))}
       </Box>

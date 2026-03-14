@@ -3,6 +3,7 @@ import {
   getCommitSummary,
   type BrowserRunEvent,
 } from "@browser-tester/supervisor";
+import figures from "figures";
 import { VERSION } from "../constants.js";
 import { getGitState, getRecommendedScope } from "./get-git-state.js";
 import { generateBrowserPlan, type TestAction } from "./browser-agent.js";
@@ -25,11 +26,11 @@ const formatRunEvent = (event: BrowserRunEvent): string | null => {
     case "run-started":
       return `Starting ${event.planTitle}`;
     case "step-started":
-      return `→ ${event.stepId} ${event.title}`;
+      return `${figures.arrowRight} ${event.stepId} ${event.title}`;
     case "step-completed":
-      return `  ✓ ${event.stepId} ${event.summary}`;
+      return `  ${figures.tick} ${event.stepId} ${event.summary}`;
     case "assertion-failed":
-      return `  ✗ ${event.stepId} ${event.message}`;
+      return `  ${figures.cross} ${event.stepId} ${event.message}`;
     case "browser-log":
       return `    browser:${event.action} ${event.message}`;
     case "text":

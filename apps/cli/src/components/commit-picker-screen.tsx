@@ -1,6 +1,7 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useState } from "react";
 import { Box, Text, useInput } from "ink";
-import useStdoutDimensions from "ink-use-stdout-dimensions";
+import { useStdoutDimensions } from "../hooks/use-stdout-dimensions.js";
+import figures from "figures";
 import TextInput from "ink-text-input";
 import { execSync } from "child_process";
 import { GIT_TIMEOUT_MS, type CommitSummary } from "@browser-tester/supervisor";
@@ -14,6 +15,8 @@ import {
 } from "../constants.js";
 import { useColors } from "./theme-context.js";
 import { truncateText } from "../utils/truncate-text.js";
+import { visualPadEnd } from "../utils/visual-pad-end.js";
+import { useScrollableList } from "../hooks/use-scrollable-list.js";
 import { useAppStore } from "../store.js";
 
 interface CommitWithMeta extends CommitSummary {
@@ -51,10 +54,9 @@ export const CommitPickerScreen = () => {
   const COLORS = useColors();
   const [commits] = useState(() => fetchCommitsWithMeta());
   const [searchQuery, setSearchQuery] = useState("");
-  const [highlightedIndex, setHighlightedIndex] = useState(0);
   const [isSearching, setIsSearching] = useState(false);
 
-  const filteredCommits = useMemo(() => {
+  const filteredCommits = (() => {
     if (!searchQuery) return commits;
     const lower = searchQuery.toLowerCase();
     return commits.filter(
@@ -63,7 +65,13 @@ export const CommitPickerScreen = () => {
         commit.shortHash.toLowerCase().includes(lower) ||
         commit.author.toLowerCase().includes(lower),
     );
-  }, [commits, searchQuery]);
+  })();
+
+  const { highlightedIndex, setHighlightedIndex, scrollOffset, handleNavigation } =
+    useScrollableList({
+      itemCount: filteredCommits.length,
+      visibleCount: VISIBLE_COMMIT_COUNT,
+    });
 
   const subjectColumnWidth =
     columns -
@@ -73,19 +81,15 @@ export const CommitPickerScreen = () => {
     COMMIT_DATE_COLUMN_WIDTH -
     2;
 
-  const scrollOffset = useMemo(() => {
-    if (filteredCommits.length <= VISIBLE_COMMIT_COUNT) return 0;
-    const half = Math.floor(VISIBLE_COMMIT_COUNT / 2);
-    const maxOffset = filteredCommits.length - VISIBLE_COMMIT_COUNT;
-    return Math.min(maxOffset, Math.max(0, highlightedIndex - half));
-  }, [filteredCommits.length, highlightedIndex]);
-
   const visibleCommits = filteredCommits.slice(scrollOffset, scrollOffset + VISIBLE_COMMIT_COUNT);
 
-  const handleInput = useCallback((value: string) => {
-    setSearchQuery(value);
-    setHighlightedIndex(0);
-  }, []);
+  const handleSearchChange = useCallback(
+    (value: string) => {
+      setSearchQuery(value);
+      setHighlightedIndex(0);
+    },
+    [setHighlightedIndex],
+  );
 
   useInput((input, key) => {
     if (isSearching) {
@@ -95,12 +99,8 @@ export const CommitPickerScreen = () => {
       return;
     }
 
-    if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
-      setHighlightedIndex((previous) => Math.min(filteredCommits.length - 1, previous + 1));
-    }
-    if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
-      setHighlightedIndex((previous) => Math.max(0, previous - 1));
-    }
+    if (handleNavigation(input, key)) return;
+
     if (key.return && filteredCommits.length > 0) {
       selectCommit(filteredCommits[highlightedIndex]);
     }
@@ -136,14 +136,20 @@ export const CommitPickerScreen = () => {
           return (
             <Text key={commit.hash}>
               <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>
-                {isSelected ? "❯ " : "  "}
+                {isSelected ? `${figures.pointer} ` : "  "}
               </Text>
-              <Text color={COLORS.PURPLE}>{commit.shortHash.padEnd(COMMIT_HASH_COLUMN_WIDTH)}</Text>
+              <Text color={COLORS.PURPLE}>
+                {visualPadEnd(commit.shortHash, COMMIT_HASH_COLUMN_WIDTH)}
+              </Text>
               <Text color={isSelected ? COLORS.TEXT : COLORS.DIM} bold={isSelected}>
-                {truncateText(commit.subject, subjectColumnWidth - 1).padEnd(subjectColumnWidth)}
+                {visualPadEnd(
+                  truncateText(commit.subject, subjectColumnWidth - 1),
+                  subjectColumnWidth,
+                )}
               </Text>
               <Text color={COLORS.CYAN}>
-                {truncateText(commit.author, COMMIT_AUTHOR_COLUMN_WIDTH - 1).padEnd(
+                {visualPadEnd(
+                  truncateText(commit.author, COMMIT_AUTHOR_COLUMN_WIDTH - 1),
                   COMMIT_AUTHOR_COLUMN_WIDTH,
                 )}
               </Text>
@@ -159,7 +165,7 @@ export const CommitPickerScreen = () => {
       {isSearching ? (
         <Box marginTop={1}>
           <Text color={COLORS.DIM}>/</Text>
-          <TextInput focus value={searchQuery} onChange={handleInput} />
+          <TextInput focus value={searchQuery} onChange={handleSearchChange} />
         </Box>
       ) : searchQuery ? (
         <Box marginTop={1}>

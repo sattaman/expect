@@ -1,4 +1,5 @@
 import { Text } from "ink";
+import figures from "figures";
 import { useColors } from "../theme-context.js";
 import type { DiffStats } from "@browser-tester/supervisor";
 
@@ -22,7 +23,9 @@ export const MenuItem = ({
   const COLORS = useColors();
   return (
     <Text>
-      <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>{isSelected ? "❯ " : "  "}</Text>
+      <Text color={isSelected ? COLORS.ORANGE : COLORS.DIM}>
+        {isSelected ? `${figures.pointer} ` : "  "}
+      </Text>
       <Text color={isSelected ? undefined : COLORS.DIM} bold={isSelected}>
         {label}
       </Text>
