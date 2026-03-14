@@ -3,7 +3,7 @@ import { dirname, join } from "node:path";
 import { DEFAULT_BROWSER_MCP_SERVER_NAME } from "./constants.js";
 import type { AgentProviderSettings, McpServerConfig } from "@browser-tester/agent";
 
-const require = createRequire(join(process.cwd(), "package.json"));
+const require = createRequire(import.meta.url);
 
 export const BROWSER_TESTER_VIDEO_OUTPUT_ENV_NAME = "BROWSER_TESTER_VIDEO_OUTPUT_PATH";
 
