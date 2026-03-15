@@ -43,8 +43,6 @@ export const PlanningScreen = () => {
     Math.floor(elapsed / PHASE_DURATION_MS),
     PLANNING_PHASES.length - 1
   );
-  const currentPhase = PLANNING_PHASES[phaseIndex];
-  const completedPhases = PLANNING_PHASES.slice(0, phaseIndex);
 
   return (
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
@@ -64,14 +62,23 @@ export const PlanningScreen = () => {
         <Text color={COLORS.DIM}>{flowInstruction}</Text>
       </Box>
 
-      <Box marginTop={1} flexDirection="column">
-        {completedPhases.map((phase) => (
-          <Text key={phase} color={COLORS.DIM}>
-            <Text color={COLORS.GREEN}>{"  ✓ "}</Text>
-            {phase}
-          </Text>
-        ))}
-        <Spinner message={currentPhase ?? "Planning..."} />
+      <Box
+        marginTop={1}
+        flexDirection="column"
+        height={PLANNING_PHASES.length + 1}
+      >
+        {PLANNING_PHASES.map((phase, index) => {
+          if (index > phaseIndex) return null;
+          if (index === phaseIndex) {
+            return <Spinner key={phase} message={phase} />;
+          }
+          return (
+            <Text key={phase} color={COLORS.DIM}>
+              <Text color={COLORS.GREEN}>{"  ✓ "}</Text>
+              {phase}
+            </Text>
+          );
+        })}
       </Box>
     </Box>
   );
