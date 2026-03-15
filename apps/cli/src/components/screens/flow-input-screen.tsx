@@ -73,7 +73,7 @@ export const FlowInputScreen = () => {
   };
 
   const moveToPresets = () => {
-    setPresetIndex(FLOW_PRESETS.length - 1);
+    setPresetIndex(0);
     if (errorMessage) setErrorMessage(null);
   };
 
@@ -97,17 +97,19 @@ export const FlowInputScreen = () => {
     (input, key) => {
       if (presetIndex === null) return;
 
-      if (key.upArrow || key.leftArrow) {
+      if (key.upArrow) {
+        moveToInput();
+        return;
+      }
+      if (key.leftArrow) {
         if (presetIndex > 0) {
           setPresetIndex(presetIndex - 1);
         }
         return;
       }
-      if (key.downArrow || key.rightArrow) {
+      if (key.rightArrow) {
         if (presetIndex < FLOW_PRESETS.length - 1) {
           setPresetIndex(presetIndex + 1);
-        } else {
-          moveToInput();
         }
         return;
       }
@@ -162,8 +164,8 @@ export const FlowInputScreen = () => {
           placeholder="Describe what to test..."
           value={value}
           onSubmit={submitValue}
-          onUpArrowAtTop={moveToPresets}
-          onDownArrowAtBottom={recallNextInstruction}
+          onUpArrowAtTop={recallPreviousInstruction}
+          onDownArrowAtBottom={moveToPresets}
           onChange={(nextValue) => {
             const sanitizedValue = stripMouseSequences(nextValue);
             setHistoryIndex(null);
@@ -196,7 +198,7 @@ export const FlowInputScreen = () => {
       <Box marginTop={1}>
         <Text color={COLORS.DIM}>
           {presetIndex !== null
-            ? "Press ←/→ to browse suggestions, ↓ to go back to input, Enter to select."
+            ? "Press ←/→ to browse, ↑ to go back to input, Enter to select."
             : historyIndex === null
               ? "Press Shift+Enter for a new line."
               : `Browsing previous inputs ${historyIndex + 1}/${flowInstructionHistory.length}.`}

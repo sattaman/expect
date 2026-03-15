@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type {
   BrowserEnvironmentHints,
@@ -12,7 +12,8 @@ import {
   SAVED_FLOW_FORMAT_VERSION,
 } from "../constants.js";
 import { slugify } from "./slugify.js";
-import { formatSavedFlowFrontmatter, parseSavedFlowFile } from "./saved-flow-file.js";
+import { formatSavedFlowFrontmatter } from "./saved-flow-file.js";
+import { syncSavedFlowDirectory } from "./sync-saved-flow-directory.js";
 import { truncateText } from "./truncate-text.js";
 
 interface SaveFlowOptions {
@@ -24,12 +25,6 @@ interface SaveFlowOptions {
 export interface SaveFlowResult {
   flowPath: string;
   directoryPath: string;
-  slug: string;
-}
-
-interface SavedFlowMetadata {
-  title: string;
-  description: string;
   slug: string;
 }
 
@@ -120,54 +115,15 @@ const formatFlowFileContent = (
   ].join("\n");
 };
 
-const parseSavedFlowMetadata = (content: string): SavedFlowMetadata | null => {
-  const savedFlowFileData = parseSavedFlowFile(content);
-  if (!savedFlowFileData) return null;
-
-  return {
-    title: savedFlowFileData.title,
-    description: savedFlowFileData.description,
-    slug: savedFlowFileData.slug,
-  };
-};
-
-const formatDirectoryContent = (entries: SavedFlowMetadata[]): string =>
-  [
-    "# Saved Flows",
-    "",
-    ...(entries.length > 0
-      ? entries.map((entry) => `- [${entry.title}](./${entry.slug}.md) - ${entry.description}`)
-      : ["No saved flows yet."]),
-    "",
-  ].join("\n");
-
 export const saveFlow = async (options: SaveFlowOptions): Promise<SaveFlowResult> => {
   const slug = slugify(options.plan.title);
   const description = createFlowDescription(options.plan);
   const flowDirectoryPath = join(options.target.cwd, FLOW_DIRECTORY_NAME);
   const flowFilePath = join(flowDirectoryPath, `${slug}.md`);
-  const directoryFilePath = join(flowDirectoryPath, FLOW_DIRECTORY_INDEX_FILE_NAME);
 
   await mkdir(flowDirectoryPath, { recursive: true });
   await writeFile(flowFilePath, formatFlowFileContent(options, slug, description), "utf8");
-
-  const flowFileNames = (await readdir(flowDirectoryPath))
-    .filter((fileName) => fileName.endsWith(".md") && fileName !== FLOW_DIRECTORY_INDEX_FILE_NAME)
-    .sort((leftValue, rightValue) => leftValue.localeCompare(rightValue));
-
-  const directoryEntries = (
-    await Promise.all(
-      flowFileNames.map(async (fileName) => {
-        const filePath = join(flowDirectoryPath, fileName);
-        const fileContent = await readFile(filePath, "utf8");
-        return parseSavedFlowMetadata(fileContent);
-      }),
-    )
-  )
-    .filter((entry): entry is SavedFlowMetadata => entry !== null)
-    .sort((leftValue, rightValue) => leftValue.title.localeCompare(rightValue.title));
-
-  await writeFile(directoryFilePath, formatDirectoryContent(directoryEntries), "utf8");
+  await syncSavedFlowDirectory(flowDirectoryPath);
 
   return {
     flowPath: join(FLOW_DIRECTORY_NAME, `${slug}.md`),

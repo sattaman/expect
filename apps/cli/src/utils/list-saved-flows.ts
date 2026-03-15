@@ -1,4 +1,4 @@
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, stat } from "node:fs/promises";
 import { join } from "node:path";
 import type { TestTarget } from "@browser-tester/supervisor";
 import { FLOW_DIRECTORY_INDEX_FILE_NAME, FLOW_DIRECTORY_NAME } from "../constants.js";
@@ -9,11 +9,16 @@ export interface SavedFlowSummary {
   description: string;
   slug: string;
   filePath: string;
+  modifiedAtMs: number;
   savedTargetScope: TestTarget["scope"] | null;
   savedTargetDisplayName: string | null;
 }
 
-const parseSavedFlowSummary = (content: string, filePath: string): SavedFlowSummary | null => {
+const parseSavedFlowSummary = (
+  content: string,
+  filePath: string,
+  modifiedAtMs: number,
+): SavedFlowSummary | null => {
   const savedFlowFileData = parseSavedFlowFile(content);
   if (!savedFlowFileData) return null;
 
@@ -22,6 +27,7 @@ const parseSavedFlowSummary = (content: string, filePath: string): SavedFlowSumm
     description: savedFlowFileData.description,
     slug: savedFlowFileData.slug,
     filePath,
+    modifiedAtMs,
     savedTargetScope: savedFlowFileData.saved_target_scope,
     savedTargetDisplayName: savedFlowFileData.saved_target_display_name,
   };
@@ -44,8 +50,11 @@ export const listSavedFlows = async (cwd: string = process.cwd()): Promise<Saved
       const filePath = join(flowDirectoryPath, fileName);
 
       try {
-        const content = await readFile(filePath, "utf8");
-        return parseSavedFlowSummary(content, filePath);
+        const [content, fileStats] = await Promise.all([
+          readFile(filePath, "utf8"),
+          stat(filePath),
+        ]);
+        return parseSavedFlowSummary(content, filePath, fileStats.mtimeMs);
       } catch {
         return null;
       }
@@ -54,5 +63,9 @@ export const listSavedFlows = async (cwd: string = process.cwd()): Promise<Saved
 
   return savedFlows
     .filter((savedFlow): savedFlow is SavedFlowSummary => savedFlow !== null)
-    .sort((leftValue, rightValue) => leftValue.title.localeCompare(rightValue.title));
+    .sort(
+      (leftValue, rightValue) =>
+        rightValue.modifiedAtMs - leftValue.modifiedAtMs ||
+        leftValue.title.localeCompare(rightValue.title),
+    );
 };

@@ -1,4 +1,4 @@
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import type { BrowserEnvironmentHints, BrowserFlowPlan } from "@browser-tester/supervisor";
 import type { SavedFlowSummary } from "./list-saved-flows.js";
 import { listSavedFlows } from "./list-saved-flows.js";
@@ -10,7 +10,7 @@ export interface LoadedSavedFlow extends SavedFlowSummary {
 }
 
 export const loadSavedFlow = async (filePath: string): Promise<LoadedSavedFlow> => {
-  const fileContent = await readFile(filePath, "utf8");
+  const [fileContent, fileStats] = await Promise.all([readFile(filePath, "utf8"), stat(filePath)]);
   const savedFlowFileData = parseSavedFlowFile(fileContent);
   if (!savedFlowFileData) throw new Error("Saved flow file is invalid.");
 
@@ -19,6 +19,7 @@ export const loadSavedFlow = async (filePath: string): Promise<LoadedSavedFlow> 
     description: savedFlowFileData.description,
     slug: savedFlowFileData.slug,
     filePath,
+    modifiedAtMs: fileStats.mtimeMs,
     savedTargetScope: savedFlowFileData.saved_target_scope,
     savedTargetDisplayName: savedFlowFileData.saved_target_display_name,
     environment: savedFlowFileData.environment,

@@ -1,10 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Box, Text, useInput } from "ink";
 import figures from "figures";
 import { SAVED_FLOW_PICKER_VISIBLE_COUNT } from "../../constants.js";
 import { useColors } from "../theme-context.js";
 import { useAppStore } from "../../store.js";
+import { formatTimeAgo } from "../../utils/format-time-ago.js";
 import { loadSavedFlow } from "../../utils/load-saved-flow.js";
+import { removeSavedFlow } from "../../utils/remove-saved-flow.js";
 import { ScreenHeading } from "../ui/screen-heading.js";
 import { ErrorMessage } from "../ui/error-message.js";
 import { Clickable } from "../ui/clickable.js";
@@ -20,9 +22,21 @@ export const SavedFlowPickerScreen = () => {
   const testAction = useAppStore((state) => state.testAction);
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
   const applySavedFlow = useAppStore((state) => state.applySavedFlow);
+  const loadSavedFlows = useAppStore((state) => state.loadSavedFlows);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loadingFilePath, setLoadingFilePath] = useState<string | null>(null);
+  const [deletingFilePath, setDeletingFilePath] = useState<string | null>(null);
+  const [deleteConfirmationVisible, setDeleteConfirmationVisible] = useState(false);
   const [loadingError, setLoadingError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setSelectedIndex((previous) =>
+      savedFlowSummaries.length === 0 ? 0 : Math.min(previous, savedFlowSummaries.length - 1),
+    );
+  }, [savedFlowSummaries.length]);
+
+  const selectedFlow = savedFlowSummaries[selectedIndex] ?? null;
+  const actionInProgress = Boolean(loadingFilePath || deletingFilePath);
 
   const scrollOffset = useMemo(() => {
     if (savedFlowSummaries.length <= SAVED_FLOW_PICKER_VISIBLE_COUNT) return 0;
@@ -37,7 +51,7 @@ export const SavedFlowPickerScreen = () => {
   );
 
   const selectFlow = (index: number) => {
-    if (loadingFilePath) return;
+    if (actionInProgress || deleteConfirmationVisible) return;
     const flow = savedFlowSummaries[index];
     if (!flow) return;
 
@@ -55,19 +69,50 @@ export const SavedFlowPickerScreen = () => {
       });
   };
 
+  const deleteSelectedFlow = () => {
+    if (!selectedFlow || actionInProgress) return;
+
+    setDeleteConfirmationVisible(false);
+    setLoadingError(null);
+    setDeletingFilePath(selectedFlow.filePath);
+
+    void removeSavedFlow(selectedFlow.filePath)
+      .then(() => loadSavedFlows())
+      .catch((caughtError) => {
+        setLoadingError(
+          caughtError instanceof Error ? caughtError.message : "Failed to remove saved flow.",
+        );
+      })
+      .finally(() => {
+        setDeletingFilePath(null);
+      });
+  };
+
   useInput((input, key) => {
-    if (loadingFilePath) return;
+    const normalizedInput = input.toLowerCase();
+
+    if (deleteConfirmationVisible) {
+      if (key.return) deleteSelectedFlow();
+      if (normalizedInput === "n") setDeleteConfirmationVisible(false);
+      return;
+    }
+
+    if (actionInProgress) return;
     if (savedFlowSummaries.length === 0) return;
 
-    if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
+    if (key.downArrow || normalizedInput === "j" || (key.ctrl && normalizedInput === "n")) {
       setSelectedIndex((previous) => Math.min(savedFlowSummaries.length - 1, previous + 1));
     }
 
-    if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
+    if (key.upArrow || normalizedInput === "k" || (key.ctrl && normalizedInput === "p")) {
       setSelectedIndex((previous) => Math.max(0, previous - 1));
     }
 
     if (key.return) selectFlow(selectedIndex);
+    if (normalizedInput === "d") {
+      setLoadingError(null);
+      setDeleteConfirmationVisible(true);
+    }
   });
 
   if (!testAction) return null;
@@ -86,6 +131,8 @@ export const SavedFlowPickerScreen = () => {
           const actualIndex = index + scrollOffset;
           const isSelected = actualIndex === selectedIndex;
           const isLoading = loadingFilePath === savedFlow.filePath;
+          const isDeleting = deletingFilePath === savedFlow.filePath;
+          const actionSuffix = isLoading ? " (loading...)" : isDeleting ? " (removing...)" : "";
 
           return (
             <Clickable key={savedFlow.filePath} onClick={() => selectFlow(actualIndex)}>
@@ -97,14 +144,15 @@ export const SavedFlowPickerScreen = () => {
                   {isSelected ? (
                     <Text color={COLORS.PRIMARY} bold>
                       {savedFlow.title}
-                      {isLoading ? " (loading...)" : ""}
                     </Text>
                   ) : (
                     <Text color={COLORS.TEXT}>
                       {savedFlow.title}
-                      {isLoading ? " (loading...)" : ""}
                     </Text>
                   )}
+                  <Text color={COLORS.DIM}>{" · updated "}</Text>
+                  <Text color={COLORS.DIM}>{formatTimeAgo(savedFlow.modifiedAtMs)}</Text>
+                  {actionSuffix ? <Text color={COLORS.DIM}>{actionSuffix}</Text> : null}
                 </Text>
                 <Text color={COLORS.DIM}>
                   {"  "}
@@ -121,6 +169,32 @@ export const SavedFlowPickerScreen = () => {
           <Text color={COLORS.DIM}>No compatible saved flows available yet.</Text>
         ) : null}
       </Box>
+
+      {deleteConfirmationVisible && selectedFlow ? (
+        <Box
+          flexDirection="column"
+          marginTop={1}
+          borderStyle="round"
+          borderColor={COLORS.YELLOW}
+          paddingX={1}
+        >
+          <Text color={COLORS.YELLOW} bold>
+            Remove saved flow?
+          </Text>
+          <Text color={COLORS.DIM}>
+            Press <Text color={COLORS.PRIMARY}>Enter</Text> to remove{" "}
+            <Text color={COLORS.TEXT}>{selectedFlow.title}</Text> or{" "}
+            <Text color={COLORS.PRIMARY}>n</Text> to cancel.
+          </Text>
+        </Box>
+      ) : savedFlowSummaries.length > 0 ? (
+        <Box marginTop={1}>
+          <Text color={COLORS.DIM}>
+            Press <Text color={COLORS.PRIMARY}>Enter</Text> to load or{" "}
+            <Text color={COLORS.PRIMARY}>d</Text> to remove the selected flow.
+          </Text>
+        </Box>
+      ) : null}
 
       <ErrorMessage message={loadingError} />
     </Box>
