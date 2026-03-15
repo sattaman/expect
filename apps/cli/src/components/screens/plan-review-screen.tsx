@@ -78,7 +78,7 @@ const StepPreview = ({ step, stepNumber, totalSteps }: StepPreviewProps) => {
       </Text>
       <Text color={COLORS.TEXT}>{step.instruction}</Text>
       <Box marginTop={1} flexDirection="column">
-        <Text color={COLORS.DIM} bold>expected</Text>
+        <Text color={COLORS.DIM} bold>Expected</Text>
         <Text color={COLORS.GREEN}>{step.expectedOutcome}</Text>
       </Box>
     </Box>
