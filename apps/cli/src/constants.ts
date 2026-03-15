@@ -13,6 +13,7 @@ export const SECONDS_PER_MINUTE = 60;
 export const FLOW_DIRECTORY_NAME = "flows";
 export const FLOW_DIRECTORY_INDEX_FILE_NAME = "directory.md";
 export const FLOW_DESCRIPTION_CHAR_LIMIT = 120;
+export const FLOW_INPUT_HISTORY_LIMIT = 20;
 export const SAVED_FLOW_FORMAT_VERSION = 2;
 export const THEME_PICKER_VISIBLE_COUNT = 20;
 export const SAVED_FLOW_PICKER_VISIBLE_COUNT = 12;

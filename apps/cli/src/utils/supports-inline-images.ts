@@ -1,6 +1,13 @@
+import { detectTerminal } from "detect-terminal";
 import supportsTerminalGraphics from "supports-terminal-graphics";
 
-const graphicsSupport = supportsTerminalGraphics.stdout;
+const INLINE_IMAGE_UNSUPPORTED_TERMINALS = new Set(["warpterminal"]);
 
-export const supportsKittyImages = graphicsSupport.kitty;
-export const supportsItermImages = graphicsSupport.iterm2;
+const graphicsSupport = supportsTerminalGraphics.stdout;
+const detectedTerminal = detectTerminal({ preferOuter: true });
+const canRenderInlineImages =
+  process.stdout.isTTY && !INLINE_IMAGE_UNSUPPORTED_TERMINALS.has(detectedTerminal ?? "");
+
+export const supportsKittyImages = canRenderInlineImages && graphicsSupport.kitty;
+export const supportsItermImages = canRenderInlineImages && graphicsSupport.iterm2;
+export const supportsInlineImages = supportsKittyImages || supportsItermImages;

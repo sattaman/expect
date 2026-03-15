@@ -99,7 +99,7 @@ const createCommandAction =
 
 program
   .command("unstaged")
-  .description("Test unstaged changes")
+  .description("Test current changes")
   .action(createCommandAction("test-unstaged"));
 
 program

@@ -10,7 +10,7 @@ import { ErrorMessage } from "../ui/error-message.js";
 import { Clickable } from "../ui/clickable.js";
 
 const ACTION_LABELS = {
-  "test-unstaged": "Test unstaged changes",
+  "test-unstaged": "Test current changes",
   "test-branch": "Test entire branch",
   "select-commit": "Select a commit to test",
 };

@@ -154,6 +154,8 @@ export const TestingScreen = () => {
   const [runStartedAt, setRunStartedAt] = useState<number | null>(null);
   const [elapsedTimeMs, setElapsedTimeMs] = useState(0);
   const [toolCallDisplayMode, setToolCallDisplayMode] = useState(TOOL_CALL_DISPLAY_MODE_COMPACT);
+  const [showCancelConfirmation, setShowCancelConfirmation] = useState(false);
+  const [exitRequested, setExitRequested] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
   const lines = useMemo(
     () => [
@@ -166,6 +168,11 @@ export const TestingScreen = () => {
   );
   const visibleLines = useMemo(() => lines.slice(-TESTING_VISIBLE_LOG_COUNT), [lines]);
   const elapsedTimeLabel = useMemo(() => formatElapsedTime(elapsedTimeMs), [elapsedTimeMs]);
+
+  useEffect(() => {
+    if (!exitRequested || running) return;
+    exitTesting();
+  }, [exitRequested, exitTesting, running]);
 
   useEffect(() => {
     if (!running || runStartedAt === null) return;
@@ -196,6 +203,8 @@ export const TestingScreen = () => {
     setScreenshotPaths([]);
     setRunStartedAt(startedAt);
     setElapsedTimeMs(0);
+    setShowCancelConfirmation(false);
+    setExitRequested(false);
 
     const run = async () => {
       try {
@@ -234,6 +243,7 @@ export const TestingScreen = () => {
           setError(errorMessage);
         }
       } finally {
+        setShowCancelConfirmation(false);
         setRunning(false);
       }
     };
@@ -246,13 +256,38 @@ export const TestingScreen = () => {
   }, [environment, plan, target]);
 
   useInput((input, key) => {
+    const normalizedInput = input.toLowerCase();
+
+    if (exitRequested) {
+      return;
+    }
+
+    if (showCancelConfirmation) {
+      if (key.return || normalizedInput === "y") {
+        setShowCancelConfirmation(false);
+        setExitRequested(true);
+        abortControllerRef.current?.abort();
+        return;
+      }
+
+      if (key.escape || normalizedInput === "n") {
+        setShowCancelConfirmation(false);
+      }
+
+      return;
+    }
+
     if (input === TRACE_DISPLAY_SHORTCUT_KEY) {
       setToolCallDisplayMode((previous) => getNextToolCallDisplayMode(previous));
       return;
     }
 
     if (key.escape) {
-      abortControllerRef.current?.abort();
+      if (running) {
+        setShowCancelConfirmation(true);
+        return;
+      }
+
       exitTesting();
     }
   });
@@ -282,6 +317,29 @@ export const TestingScreen = () => {
         </Clickable>
       </Box>
 
+      {showCancelConfirmation ? (
+        <Box
+          flexDirection="column"
+          marginTop={1}
+          borderStyle="round"
+          borderColor={COLORS.YELLOW}
+          paddingX={1}
+        >
+          <Text color={COLORS.YELLOW} bold>
+            Stop this browser run?
+          </Text>
+          <Text color={COLORS.DIM}>
+            This will terminate the agent and close the browser.
+          </Text>
+          <Text color={COLORS.DIM}>
+            Press <Text color={COLORS.PRIMARY}>Enter</Text> or{" "}
+            <Text color={COLORS.PRIMARY}>y</Text> to stop, or{" "}
+            <Text color={COLORS.PRIMARY}>Esc</Text> or <Text color={COLORS.PRIMARY}>n</Text> to
+            keep it running.
+          </Text>
+        </Box>
+      ) : null}
+
       <Box
         flexDirection="column"
         marginTop={1}
@@ -299,7 +357,9 @@ export const TestingScreen = () => {
 
       {running && (
         <Box marginTop={1}>
-          <Spinner message={`Agent is working... ${elapsedTimeLabel}`} />
+          <Spinner
+            message={`${exitRequested ? "Stopping agent..." : "Agent is working..."} ${elapsedTimeLabel}`}
+          />
         </Box>
       )}
 
@@ -326,7 +386,15 @@ export const TestingScreen = () => {
 
       <Box marginTop={1}>
         <Text color={COLORS.DIM}>
-          Esc to {running ? "cancel" : "go back"} {TRACE_DISPLAY_SHORTCUT_KEY} to cycle trace
+          {showCancelConfirmation ? (
+            "Enter or y to stop. Esc or n to keep running."
+          ) : exitRequested ? (
+            "Stopping run..."
+          ) : (
+            <>
+              Esc to {running ? "cancel" : "go back"} {TRACE_DISPLAY_SHORTCUT_KEY} to cycle trace
+            </>
+          )}
         </Text>
       </Box>
     </Box>

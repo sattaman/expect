@@ -1,29 +1,59 @@
 import { useCallback, useEffect, useState } from "react";
+import type { DiffStats } from "@browser-tester/supervisor";
 import { Box, Text, useInput } from "ink";
+import { useAppStore } from "../../store.js";
+import type { TestAction } from "../../utils/browser-agent.js";
+import { getRecommendedScope, type GitState, type TestScope } from "../../utils/get-git-state.js";
 import { useColors } from "../theme-context.js";
 import { Clickable } from "../ui/clickable.js";
 import { MenuItem } from "../ui/menu-item.js";
-import type { DiffStats } from "@browser-tester/supervisor";
-import { type GitState } from "../../utils/get-git-state.js";
-import { useAppStore } from "../../store.js";
-
-type MenuAction = "test-branch" | "select-pr" | "custom-test";
 
 interface ScopeMenuOption {
   label: string;
   detail: string;
-  action: MenuAction;
+  action: TestAction | "select-pr" | "custom-test";
   diffStats?: DiffStats | null;
 }
 
-const buildMenuOptions = (gitState: GitState): ScopeMenuOption[] => {
+const getDefaultActionForScope = (scope: TestScope): TestAction | null => {
+  if (scope === "unstaged-changes") return "test-unstaged";
+  if (scope === "entire-branch") return "test-branch";
+  return null;
+};
+
+const getCustomTestAction = (defaultAction: TestAction | null): TestAction =>
+  defaultAction ?? "test-unstaged";
+
+const getSavedFlowAction = (
+  action: ScopeMenuOption["action"],
+  defaultAction: TestAction | null,
+): TestAction | null => {
+  if (action === "select-pr") return null;
+  if (action === "custom-test") return getCustomTestAction(defaultAction);
+  return action;
+};
+
+const buildMenuOptions = (scope: TestScope, gitState: GitState): ScopeMenuOption[] => {
   const options: ScopeMenuOption[] = [];
 
-  if (!gitState.isOnMain && gitState.hasBranchCommits) {
+  if (scope === "unstaged-changes") {
     options.push({
-      label: "Test current branch",
-      detail: `(${gitState.branchCommitCount} commits)`,
+      label: "Test current changes",
+      detail: "",
+      action: "test-unstaged",
+      diffStats: gitState.diffStats,
+    });
+  }
+
+  if (
+    scope === "entire-branch" ||
+    (scope === "unstaged-changes" && !gitState.isOnMain && gitState.hasBranchCommits)
+  ) {
+    options.push({
+      label: "Test entire branch",
+      detail: `(${gitState.currentBranch})`,
       action: "test-branch",
+      diffStats: gitState.branchDiffStats,
     });
   }
 
@@ -31,6 +61,12 @@ const buildMenuOptions = (gitState: GitState): ScopeMenuOption[] => {
     label: "Select a PR or branch to test",
     detail: "",
     action: "select-pr",
+  });
+
+  options.push({
+    label: "Select a commit to test",
+    detail: "",
+    action: "select-commit",
   });
 
   options.push({
@@ -45,9 +81,7 @@ const buildMenuOptions = (gitState: GitState): ScopeMenuOption[] => {
 export const MainMenu = () => {
   const COLORS = useColors();
   const gitState = useAppStore((state) => state.gitState);
-  const autoRunAfterPlanning = useAppStore(
-    (state) => state.autoRunAfterPlanning
-  );
+  const autoRunAfterPlanning = useAppStore((state) => state.autoRunAfterPlanning);
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
   const selectAction = useAppStore((state) => state.selectAction);
   const beginSavedFlowReuse = useAppStore((state) => state.beginSavedFlowReuse);
@@ -58,22 +92,35 @@ export const MainMenu = () => {
 
   if (!gitState) return null;
 
-  const menuOptions = buildMenuOptions(gitState);
+  const recommendedScope = getRecommendedScope(gitState);
+  const recommendedAction = getDefaultActionForScope(recommendedScope);
+  const menuOptions = buildMenuOptions(recommendedScope, gitState);
   const selectedOption = menuOptions[selectedIndex] ?? null;
   const canReuseSavedFlow =
-    savedFlowSummaries.length > 0 && Boolean(selectedOption);
+    savedFlowSummaries.length > 0 &&
+    Boolean(selectedOption) &&
+    Boolean(selectedOption ? getSavedFlowAction(selectedOption.action, recommendedAction) : null);
 
   const activateOption = useCallback(
     (option: ScopeMenuOption) => {
       if (option.action === "select-pr") {
         navigateTo("select-pr");
-      } else if (option.action === "custom-test") {
-        selectAction("test-unstaged");
-      } else if (option.action === "test-branch") {
-        selectAction("test-branch");
+        return;
       }
+
+      if (option.action === "select-commit") {
+        navigateTo("select-commit");
+        return;
+      }
+
+      if (option.action === "custom-test") {
+        selectAction(getCustomTestAction(recommendedAction));
+        return;
+      }
+
+      selectAction(option.action);
     },
-    [navigateTo, selectAction]
+    [navigateTo, recommendedAction, selectAction],
   );
 
   const totalItems = menuOptions.length + 1;
@@ -96,9 +143,8 @@ export const MainMenu = () => {
     }
 
     if (input === "r" && canReuseSavedFlow && selectedOption) {
-      if (selectedOption.action === "test-branch") {
-        beginSavedFlowReuse(selectedOption.action);
-      }
+      const savedFlowAction = getSavedFlowAction(selectedOption.action, recommendedAction);
+      if (savedFlowAction) beginSavedFlowReuse(savedFlowAction);
     }
 
     if (key.return) {
@@ -127,19 +173,14 @@ export const MainMenu = () => {
       <Box flexDirection="column">
         {menuOptions.map((option, index) => {
           return (
-            <Clickable
-              key={option.label}
-              onClick={() => activateOption(option)}
-            >
+            <Clickable key={option.label} onClick={() => activateOption(option)}>
               <MenuItem
                 label={option.label}
                 detail={option.detail}
                 isSelected={index === selectedIndex}
                 recommended={index === 0 && menuOptions.length > 1}
                 hint={
-                  menuOptions.length === 1 && index === selectedIndex
-                    ? "press return"
-                    : undefined
+                  menuOptions.length === 1 && index === selectedIndex ? "press return" : undefined
                 }
                 diffStats={option.diffStats}
               />

@@ -26,6 +26,17 @@ interface StepItem {
 
 type NavigableItem = SectionItem | StepItem;
 
+interface StepEditingState {
+  kind: "step";
+  stepIndex: number;
+}
+
+interface AssumptionsEditingState {
+  kind: "assumptions";
+}
+
+type EditingState = StepEditingState | AssumptionsEditingState | null;
+
 interface PlanStepRowProps {
   step: BrowserFlowPlan["steps"][number];
   stepNumber: number;
@@ -33,12 +44,7 @@ interface PlanStepRowProps {
   onClick: () => void;
 }
 
-const PlanStepRow = ({
-  step,
-  stepNumber,
-  selected,
-  onClick,
-}: PlanStepRowProps) => {
+const PlanStepRow = ({ step, stepNumber, selected, onClick }: PlanStepRowProps) => {
   const COLORS = useColors();
   const stepLabel = String(stepNumber).padStart(2, "0");
 
@@ -55,11 +61,7 @@ const PlanStepRow = ({
           </Text>
         </Text>
         {selected ? (
-          <Box
-            flexDirection="column"
-            marginLeft={SECTION_INDENT}
-            marginBottom={1}
-          >
+          <Box flexDirection="column" marginLeft={SECTION_INDENT} marginBottom={1}>
             <Text color={COLORS.DIM}>
               {"  "}
               <Text color={COLORS.TEXT}>{step.instruction}</Text>
@@ -88,13 +90,13 @@ export const PlanReviewScreen = () => {
   const resolvedTarget = useAppStore((state) => state.resolvedTarget);
   const updatePlan = useAppStore((state) => state.updatePlan);
   const updateEnvironment = useAppStore((state) => state.updateEnvironment);
-  const approvePlan = useAppStore((state) => state.approvePlan);
+  const requestPlanApproval = useAppStore((state) => state.requestPlanApproval);
   const loadSavedFlows = useAppStore((state) => state.loadSavedFlows);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     assumptions: true,
   });
-  const [editingIndex, setEditingIndex] = useState<number | null>(null);
+  const [editingState, setEditingState] = useState<EditingState>(null);
   const [editingValue, setEditingValue] = useState("");
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -103,17 +105,21 @@ export const PlanReviewScreen = () => {
   if (!plan || !resolvedTarget) return null;
 
   const editingStep =
-    editingIndex === null ? null : plan.steps[editingIndex] ?? null;
+    editingState?.kind === "step" ? (plan.steps[editingState.stepIndex] ?? null) : null;
+  const editingStepIndex = editingState?.kind === "step" ? editingState.stepIndex : null;
+  const editingAssumptions = editingState?.kind === "assumptions";
   const cookiesEnabled = (environment ?? {}).cookies === true;
+  const cookieSyncIsRequired = plan.cookieSync.required;
+  const cookieSyncNeedsAttention = cookieSyncIsRequired && !cookiesEnabled;
 
   const items: NavigableItem[] = useMemo(() => {
     const result: NavigableItem[] = [];
     result.push({ kind: "section", section: "details" });
+    if (cookieSyncIsRequired) {
+      result.push({ kind: "section", section: "cookies" });
+    }
     if (plan.assumptions.length > 0) {
       result.push({ kind: "section", section: "assumptions" });
-    }
-    if (plan.cookieSync.required) {
-      result.push({ kind: "section", section: "cookies" });
     }
     result.push({ kind: "section", section: "steps" });
     if (!collapsed["steps"]) {
@@ -122,7 +128,7 @@ export const PlanReviewScreen = () => {
       });
     }
     return result;
-  }, [plan, collapsed]);
+  }, [cookieSyncIsRequired, plan, collapsed]);
 
   const currentItem = items[selectedIndex];
 
@@ -134,23 +140,35 @@ export const PlanReviewScreen = () => {
   };
 
   useInput((input, key) => {
-    if (editingStep) {
+    if (editingState) {
       if (key.escape) {
-        setEditingIndex(null);
+        setEditingState(null);
         setEditingValue("");
       }
-      if (key.return && editingValue.trim()) {
+
+      if (key.return && !key.shift && editingStep && editingValue.trim()) {
         updatePlan({
           ...plan,
           steps: plan.steps.map((step, index) =>
-            index === editingIndex
-              ? { ...step, instruction: editingValue.trim() }
-              : step
+            index === editingStepIndex ? { ...step, instruction: editingValue.trim() } : step,
           ),
         });
-        setEditingIndex(null);
+        setEditingState(null);
         setEditingValue("");
       }
+
+      if (key.return && !key.shift && editingAssumptions) {
+        updatePlan({
+          ...plan,
+          assumptions: editingValue
+            .split("\n")
+            .map((assumption) => assumption.trim())
+            .filter(Boolean),
+        });
+        setEditingState(null);
+        setEditingValue("");
+      }
+
       return;
     }
 
@@ -168,11 +186,17 @@ export const PlanReviewScreen = () => {
     if (input === "e" && currentItem?.kind === "step") {
       const step = plan.steps[currentItem.stepIndex];
       if (step) {
-        setEditingIndex(currentItem.stepIndex);
+        setEditingState({ kind: "step", stepIndex: currentItem.stepIndex });
         setEditingValue(step.instruction);
       }
     }
-    if (input === "c" && plan.cookieSync.required) {
+
+    if (input === "e" && currentItem?.kind === "section" && currentItem.section === "assumptions") {
+      setEditingState({ kind: "assumptions" });
+      setEditingValue(plan.assumptions.join("\n"));
+    }
+
+    if (input === "c" && cookieSyncIsRequired) {
       updateEnvironment({
         ...(environment ?? {}),
         cookies: !cookiesEnabled,
@@ -188,24 +212,18 @@ export const PlanReviewScreen = () => {
         environment: environment ?? {},
       })
         .then((result) => {
-          setSaveMessage(
-            `Saved ${result.flowPath} and updated ${result.directoryPath}`
-          );
+          setSaveMessage(`Saved ${result.flowPath} and updated ${result.directoryPath}`);
           void loadSavedFlows();
         })
         .catch((caughtError) => {
-          setSaveError(
-            caughtError instanceof Error
-              ? caughtError.message
-              : "Failed to save flow."
-          );
+          setSaveError(caughtError instanceof Error ? caughtError.message : "Failed to save flow.");
         })
         .finally(() => {
           setSaving(false);
         });
     }
     if (input === "a") {
-      approvePlan(plan);
+      requestPlanApproval();
     }
   });
 
@@ -215,6 +233,35 @@ export const PlanReviewScreen = () => {
   return (
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <ScreenHeading title="Review browser plan" subtitle={plan.title} />
+
+      {cookieSyncIsRequired ? (
+        <Box
+          flexDirection="column"
+          marginTop={1}
+          borderStyle="round"
+          borderColor={cookieSyncNeedsAttention ? COLORS.RED : COLORS.YELLOW}
+          paddingX={1}
+        >
+          <Text color={cookieSyncNeedsAttention ? COLORS.RED : COLORS.YELLOW} bold>
+            {cookieSyncNeedsAttention
+              ? "Cookie sync is required and currently off."
+              : "Cookie sync is enabled for this plan."}
+          </Text>
+          <Text color={COLORS.DIM}>
+            <Text color={COLORS.TEXT}>{plan.cookieSync.reason}</Text>
+          </Text>
+          <Text color={COLORS.DIM}>
+            {cookieSyncNeedsAttention
+              ? "Running without synced cookies will make this browser test less reliable and more likely to fail."
+              : "This run will inherit your synced cookies, which should make authenticated checks more reliable."}
+          </Text>
+          {cookieSyncNeedsAttention ? (
+            <Text color={COLORS.DIM}>
+              Press <Text color={COLORS.PRIMARY}>c</Text> to turn cookie sync on before approving.
+            </Text>
+          ) : null}
+        </Box>
+      ) : null}
 
       <Box flexDirection="column" marginTop={1}>
         <Collapsible
@@ -236,26 +283,7 @@ export const PlanReviewScreen = () => {
         </Collapsible>
       </Box>
 
-      {plan.assumptions.length > 0 ? (
-        <Box flexDirection="column" marginTop={1}>
-          <Collapsible
-            label="Assumptions"
-            count={plan.assumptions.length}
-            selected={isSectionSelected("assumptions")}
-            open={!collapsed["assumptions"]}
-            onToggle={() => toggleSection("assumptions")}
-          >
-            {plan.assumptions.map((assumption) => (
-              <Text key={assumption} color={COLORS.DIM}>
-                {"    "}
-                <Text color={COLORS.TEXT}>{assumption}</Text>
-              </Text>
-            ))}
-          </Collapsible>
-        </Box>
-      ) : null}
-
-      {plan.cookieSync.required ? (
+      {cookieSyncIsRequired ? (
         <Box flexDirection="column" marginTop={1}>
           <Collapsible
             label="Cookie sync"
@@ -265,7 +293,13 @@ export const PlanReviewScreen = () => {
           >
             <Box flexDirection="column" marginLeft={SECTION_INDENT}>
               <Text color={COLORS.DIM}>
-                {"reason  "}
+                {"required  "}
+                <Text color={COLORS.YELLOW} bold>
+                  yes
+                </Text>
+              </Text>
+              <Text color={COLORS.DIM}>
+                {"reason    "}
                 <Text color={COLORS.TEXT}>{plan.cookieSync.reason}</Text>
               </Text>
               <Clickable
@@ -277,17 +311,48 @@ export const PlanReviewScreen = () => {
                 }
               >
                 <Text color={COLORS.DIM}>
-                  {"sync    "}
-                  <Text
-                    color={cookiesEnabled ? COLORS.GREEN : COLORS.TEXT}
-                    bold={cookiesEnabled}
-                  >
+                  {"sync      "}
+                  <Text color={cookiesEnabled ? COLORS.GREEN : COLORS.RED} bold>
                     {cookiesEnabled ? "on" : "off"}
                   </Text>
                   <Text color={COLORS.DIM}> (c to toggle)</Text>
                 </Text>
               </Clickable>
+              <Text color={COLORS.DIM}>
+                {"impact    "}
+                <Text color={cookieSyncNeedsAttention ? COLORS.RED : COLORS.TEXT}>
+                  {cookieSyncNeedsAttention
+                    ? "Without synced cookies, this run is more likely to fail."
+                    : "Synced cookies will make the run more reliable."}
+                </Text>
+              </Text>
             </Box>
+          </Collapsible>
+        </Box>
+      ) : null}
+
+      {plan.assumptions.length > 0 ? (
+        <Box flexDirection="column" marginTop={1}>
+          <Collapsible
+            label="Assumptions"
+            count={plan.assumptions.length}
+            selected={isSectionSelected("assumptions")}
+            open={!collapsed["assumptions"]}
+            onToggle={() => toggleSection("assumptions")}
+          >
+            {plan.assumptions.map((assumption, index) => (
+              <Text key={`${assumption}-${index}`} color={COLORS.DIM}>
+                {"    "}
+                <Text color={COLORS.TEXT}>{assumption}</Text>
+              </Text>
+            ))}
+            {isSectionSelected("assumptions") && !editingAssumptions ? (
+              <Text color={COLORS.DIM}>
+                {"    "}
+                <Text color={COLORS.PRIMARY}>e</Text>
+                {" to edit assumptions or add notes"}
+              </Text>
+            ) : null}
           </Collapsible>
         </Box>
       ) : null}
@@ -309,8 +374,7 @@ export const PlanReviewScreen = () => {
           onToggle={() => toggleSection("steps")}
         >
           {plan.steps.map((step, index) => {
-            const selected =
-              currentItem?.kind === "step" && currentItem.stepIndex === index;
+            const selected = currentItem?.kind === "step" && currentItem.stepIndex === index;
             return (
               <PlanStepRow
                 key={step.id}
@@ -319,7 +383,7 @@ export const PlanReviewScreen = () => {
                 selected={selected}
                 onClick={() => {
                   const itemIndex = items.findIndex(
-                    (item) => item.kind === "step" && item.stepIndex === index
+                    (item) => item.kind === "step" && item.stepIndex === index,
                   );
                   if (itemIndex >= 0) setSelectedIndex(itemIndex);
                 }}
@@ -329,19 +393,23 @@ export const PlanReviewScreen = () => {
         </Collapsible>
       </Box>
 
-      {editingStep ? (
+      {editingState ? (
         <Box flexDirection="column" marginTop={1}>
           <Text bold color={COLORS.YELLOW}>
-            Editing {editingStep.id}
+            {editingStep ? `Editing ${editingStep.id}` : "Editing assumptions"}
           </Text>
+          {editingAssumptions ? (
+            <Text color={COLORS.DIM}>
+              One line per assumption or note. Shift+Enter adds a newline.
+            </Text>
+          ) : null}
           <Box marginTop={0}>
             <Text color={COLORS.DIM}>/</Text>
             <Input
               focus
+              multiline={editingAssumptions}
               value={editingValue}
-              onChange={(nextValue) =>
-                setEditingValue(stripMouseSequences(nextValue))
-              }
+              onChange={(nextValue) => setEditingValue(stripMouseSequences(nextValue))}
             />
           </Box>
         </Box>

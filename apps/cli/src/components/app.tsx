@@ -7,6 +7,7 @@ import { CommitPickerScreen } from "./screens/commit-picker-screen.js";
 import { FlowInputScreen } from "./screens/flow-input-screen.js";
 import { PlanningScreen } from "./screens/planning-screen.js";
 import { PlanReviewScreen } from "./screens/plan-review-screen.js";
+import { CookieSyncConfirmScreen } from "./screens/cookie-sync-confirm-screen.js";
 import { SavedFlowPickerScreen } from "./screens/saved-flow-picker-screen.js";
 import { Spinner } from "./ui/spinner.js";
 import { TestingScreen } from "./screens/testing-screen.js";
@@ -142,6 +143,8 @@ export const App = () => {
         );
       case "review-plan":
         return <PlanReviewScreen />;
+      case "cookie-sync-confirm":
+        return <CookieSyncConfirmScreen />;
       default:
         return <MainMenu />;
     }

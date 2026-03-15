@@ -10,6 +10,9 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
   const COLORS = useColors();
   const navigateTo = useAppStore((state) => state.navigateTo);
   const goBack = useAppStore((state) => state.goBack);
+  const updateEnvironment = useAppStore((state) => state.updateEnvironment);
+  const browserEnvironment = useAppStore((state) => state.browserEnvironment);
+  const requestPlanApproval = useAppStore((state) => state.requestPlanApproval);
   const approvePlan = useAppStore((state) => state.approvePlan);
   const generatedPlan = useAppStore((state) => state.generatedPlan);
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
@@ -57,6 +60,8 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
       ];
     case "flow-input":
       return [
+        { key: "↑↓", label: "history" },
+        { key: "shift+enter", label: "newline" },
         { key: "esc", label: "back", cta: true, onClick: goBack },
         { key: "enter", label: "submit", color: COLORS.PRIMARY, cta: true },
       ];
@@ -67,6 +72,19 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
         { key: "↑↓", label: "nav" },
         { key: "tab", label: "fold" },
         { key: "s", label: "save" },
+        ...(generatedPlan?.cookieSync.required
+          ? [
+              {
+                key: "c",
+                label: browserEnvironment?.cookies === true ? "cookies on" : "sync cookies",
+                onClick: () =>
+                  updateEnvironment({
+                    ...(browserEnvironment ?? {}),
+                    cookies: !(browserEnvironment?.cookies === true),
+                  }),
+              },
+            ]
+          : []),
         { key: "esc", label: "cancel", onClick: goBack },
         { key: "e", label: "edit", cta: true },
         {
@@ -74,9 +92,31 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
           label: "approve",
           color: COLORS.PRIMARY,
           cta: true,
+          onClick: requestPlanApproval,
+        },
+      ];
+    case "cookie-sync-confirm":
+      return [
+        { key: "↑↓", label: "nav" },
+        { key: "esc", label: "back", onClick: goBack },
+        {
+          key: "c",
+          label: "enable sync",
+          cta: true,
           onClick: () => {
-            if (generatedPlan) approvePlan(generatedPlan);
+            updateEnvironment({
+              ...(browserEnvironment ?? {}),
+              cookies: true,
+            });
+            approvePlan();
           },
+        },
+        {
+          key: "a",
+          label: "run anyway",
+          color: COLORS.PRIMARY,
+          cta: true,
+          onClick: approvePlan,
         },
       ];
     case "testing":
@@ -95,9 +135,7 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
 
 const getHintText = (segments: HintSegment[]): string =>
   segments.length > 0
-    ? ` ${segments
-        .map((segment) => `${segment.label} ${segment.key}`)
-        .join(HINT_SEPARATOR)}`
+    ? ` ${segments.map((segment) => `${segment.label} ${segment.key}`).join(HINT_SEPARATOR)}`
     : "";
 
 export const Modeline = () => {
@@ -115,9 +153,7 @@ export const Modeline = () => {
   const keybindText = getHintText(keybinds);
   const actionPills = actions
     .map((action) =>
-      action.color
-        ? ` ${action.label} │ ${action.key} `
-        : `${action.label} ${action.key}`
+      action.color ? ` ${action.label} │ ${action.key} ` : `${action.label} ${action.key}`,
     )
     .join("   ");
   const actionWidth = actions.length > 0 ? stringWidth(actionPills) : 0;
@@ -135,8 +171,7 @@ export const Modeline = () => {
               {action.color ? (
                 <Text backgroundColor={action.color} color="#000000">
                   {" "}
-                  <Text bold>{action.label}</Text> │{" "}
-                  <Text bold>{action.key}</Text>{" "}
+                  <Text bold>{action.label}</Text> │ <Text bold>{action.key}</Text>{" "}
                 </Text>
               ) : (
                 <Text>
@@ -150,11 +185,7 @@ export const Modeline = () => {
           );
 
           return action.onClick ? (
-            <Clickable
-              key={action.key + action.label}
-              onClick={action.onClick}
-              fullWidth={false}
-            >
+            <Clickable key={action.key + action.label} onClick={action.onClick} fullWidth={false}>
               {pill}
             </Clickable>
           ) : (
@@ -163,11 +194,7 @@ export const Modeline = () => {
         })}
         <Text>{" ".repeat(gap)}</Text>
         {keybinds.length > 0 ? (
-          <HintBar
-            segments={keybinds}
-            color={theme.primary}
-            mutedColor={theme.textMuted}
-          />
+          <HintBar segments={keybinds} color={theme.primary} mutedColor={theme.textMuted} />
         ) : null}
       </Box>
     </Box>

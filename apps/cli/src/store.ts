@@ -6,16 +6,14 @@ import {
   type CommitSummary,
   type TestTarget,
 } from "@browser-tester/supervisor";
+import { FLOW_INPUT_HISTORY_LIMIT } from "./constants.js";
 import {
   getBrowserEnvironment,
   resolveBrowserTarget,
   type TestAction,
 } from "./utils/browser-agent.js";
 import { getGitState, type GitState } from "./utils/get-git-state.js";
-import {
-  listSavedFlows,
-  type SavedFlowSummary,
-} from "./utils/list-saved-flows.js";
+import { listSavedFlows, type SavedFlowSummary } from "./utils/list-saved-flows.js";
 import type { LoadedSavedFlow } from "./utils/load-saved-flow.js";
 import type { EnvironmentOverrides } from "./utils/test-run-config.js";
 
@@ -27,6 +25,7 @@ export type Screen =
   | "flow-input"
   | "planning"
   | "review-plan"
+  | "cookie-sync-confirm"
   | "testing"
   | "theme";
 
@@ -37,6 +36,7 @@ interface AppStore {
   testAction: TestAction | null;
   selectedCommit: CommitSummary | null;
   flowInstruction: string;
+  flowInstructionHistory: string[];
   autoRunAfterPlanning: boolean;
   generatedPlan: BrowserFlowPlan | null;
   resolvedTarget: TestTarget | null;
@@ -67,7 +67,8 @@ interface AppStore {
   failPlanning: (error: string) => void;
   updatePlan: (plan: BrowserFlowPlan) => void;
   updateEnvironment: (environment: BrowserEnvironmentHints | null) => void;
-  approvePlan: (plan: BrowserFlowPlan) => void;
+  requestPlanApproval: () => void;
+  approvePlan: () => void;
   exitTesting: () => void;
   switchBranch: (branch: string) => void;
 }
@@ -89,6 +90,15 @@ const RESET_FLOW_STATE = {
   planOrigin: null,
 };
 
+const rememberFlowInstruction = (history: string[], instruction: string): string[] => {
+  if (!instruction) return history;
+
+  return [instruction, ...history.filter((entry) => entry !== instruction)].slice(
+    0,
+    FLOW_INPUT_HISTORY_LIMIT,
+  );
+};
+
 export const useAppStore = create<AppStore>((set) => ({
   screen: "main",
   previousScreen: "main",
@@ -96,6 +106,7 @@ export const useAppStore = create<AppStore>((set) => ({
   testAction: null,
   selectedCommit: null,
   flowInstruction: "",
+  flowInstructionHistory: [],
   autoRunAfterPlanning: false,
   generatedPlan: null,
   resolvedTarget: null,
@@ -119,12 +130,14 @@ export const useAppStore = create<AppStore>((set) => ({
     set((state) => {
       if (state.screen === "review-plan") {
         return {
-          screen:
-            state.planOrigin === "saved" ? "saved-flow-picker" : "flow-input",
+          screen: state.planOrigin === "saved" ? "saved-flow-picker" : "flow-input",
         };
       }
       if (state.screen === "planning") {
         return { screen: "flow-input" };
+      }
+      if (state.screen === "cookie-sync-confirm") {
+        return { screen: "review-plan" };
       }
       if (state.screen === "saved-flow-picker") {
         return {
@@ -147,8 +160,7 @@ export const useAppStore = create<AppStore>((set) => ({
       return {};
     }),
 
-  navigateTo: (screen) =>
-    set((state) => ({ screen, previousScreen: state.screen })),
+  navigateTo: (screen) => set((state) => ({ screen, previousScreen: state.screen })),
 
   selectAction: (action) =>
     set({
@@ -227,16 +239,16 @@ export const useAppStore = create<AppStore>((set) => ({
     }),
 
   submitFlowInstruction: (instruction) =>
-    set({
+    set((state) => ({
       ...RESET_PLAN_STATE,
       flowInstruction: instruction,
+      flowInstructionHistory: rememberFlowInstruction(state.flowInstructionHistory, instruction),
       planningError: null,
       planOrigin: "generated",
       screen: "planning",
-    }),
+    })),
 
-  toggleAutoRun: () =>
-    set((state) => ({ autoRunAfterPlanning: !state.autoRunAfterPlanning })),
+  toggleAutoRun: () => set((state) => ({ autoRunAfterPlanning: !state.autoRunAfterPlanning })),
 
   completePlanning: (result) =>
     set((state) => ({
@@ -244,9 +256,7 @@ export const useAppStore = create<AppStore>((set) => ({
       generatedPlan: result.plan,
       browserEnvironment: result.environment,
       screen:
-        state.autoRunAfterPlanning && !result.plan.cookieSync.required
-          ? "testing"
-          : "review-plan",
+        state.autoRunAfterPlanning && !result.plan.cookieSync.required ? "testing" : "review-plan",
     })),
 
   failPlanning: (error) => set({ planningError: error }),
@@ -255,7 +265,15 @@ export const useAppStore = create<AppStore>((set) => ({
 
   updateEnvironment: (environment) => set({ browserEnvironment: environment }),
 
-  approvePlan: (plan) => set({ generatedPlan: plan, screen: "testing" }),
+  requestPlanApproval: () =>
+    set((state) => ({
+      screen:
+        state.generatedPlan?.cookieSync.required && state.browserEnvironment?.cookies !== true
+          ? "cookie-sync-confirm"
+          : "testing",
+    })),
+
+  approvePlan: () => set({ screen: "testing" }),
 
   exitTesting: () =>
     set({

@@ -6,6 +6,8 @@ interface InputProps {
   readonly value: string;
   readonly onChange: (value: string) => void;
   readonly onSubmit?: (value: string) => void;
+  readonly onUpArrowAtTop?: () => void;
+  readonly onDownArrowAtBottom?: () => void;
   readonly placeholder?: string;
   readonly focus?: boolean;
   readonly mask?: string;
@@ -47,7 +49,11 @@ const findCursorLineAndColumn = (
   return { lineIndex: lastLine, column: lines[lastLine]!.length, lines };
 };
 
-const resolveOffsetFromLineColumn = (lines: string[], lineIndex: number, column: number): number => {
+const resolveOffsetFromLineColumn = (
+  lines: string[],
+  lineIndex: number,
+  column: number,
+): number => {
   let offset = 0;
   for (let index = 0; index < lineIndex; index++) {
     offset += lines[index]!.length + 1;
@@ -65,6 +71,8 @@ export const Input = ({
   multiline = false,
   onChange,
   onSubmit,
+  onUpArrowAtTop,
+  onDownArrowAtBottom,
 }: InputProps) => {
   const [state, setState] = useState({
     cursorOffset: (originalValue || "").length,
@@ -136,12 +144,16 @@ export const Input = ({
         const { lineIndex, column, lines } = findCursorLineAndColumn(originalValue, cursorOffset);
         if (lineIndex > 0) {
           nextCursorOffset = resolveOffsetFromLineColumn(lines, lineIndex - 1, column);
+        } else {
+          onUpArrowAtTop?.();
         }
         handled = true;
       } else if (multiline && key.downArrow && showCursor) {
         const { lineIndex, column, lines } = findCursorLineAndColumn(originalValue, cursorOffset);
         if (lineIndex < lines.length - 1) {
           nextCursorOffset = resolveOffsetFromLineColumn(lines, lineIndex + 1, column);
+        } else {
+          onDownArrowAtBottom?.();
         }
         handled = true;
       } else if (key.ctrl && input === "u") {
