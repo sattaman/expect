@@ -106,8 +106,13 @@ function renderIsometricBlock(textures: BlockTextures): string {
 // Dirt background uses the real texture from /textures/dirt.png
 const DIRT_BG_SIZE = 16 * 4; // tile at 4x scale for the classic look
 
-// ─── Arrow SVG (right-pointing, Minecraft style) ────────
+// ─── Arrow SVG (right-pointing, pixel-art Minecraft style) ────────
 function ArrowIcon({ active }: { active: boolean }) {
+  const white = active ? "#7DB63A" : "#C6C6C6";
+  const shadow = active ? "#5E8B2A" : "#8B8B8B";
+  const highlight = active ? "#8BC63F" : "#DBDBDB";
+
+  // Pixel-art arrow: 22x15 grid, each unit = 1px in viewBox
   return (
     <svg
       width={22 * S}
@@ -115,38 +120,46 @@ function ArrowIcon({ active }: { active: boolean }) {
       viewBox="0 0 22 15"
       style={{ imageRendering: "pixelated" }}
     >
-      <rect
-        x="0"
-        y="3"
-        width="16"
-        height="9"
-        fill={active ? "#8B8B8B" : "#C6C6C6"}
-      />
-      <rect
-        x="0"
-        y="4"
-        width="15"
-        height="7"
-        fill={active ? "#fff" : "#DBDBDB"}
-      />
-      {active && (
-        <>
-          <rect x="1" y="5" width="13" height="5" fill="#6E9E33" />
-          <rect x="1" y="5" width="13" height="2" fill="#7DB63A" />
-        </>
-      )}
-      <polygon
-        points="16,0 22,7.5 16,15"
-        fill={active ? "#6E9E33" : "#A5A5A5"}
-      />
-      <polygon
-        points="16,1 21,7.5 16,14"
-        fill={active ? "#7DB63A" : "#C6C6C6"}
-      />
-      <polygon
-        points="16,3 19,7.5 16,12"
-        fill={active ? "#8BC63F" : "#DBDBDB"}
-      />
+      {/* Shaft shadow (bottom edge) */}
+      <rect x="0" y="10" width="16" height="1" fill={shadow} />
+      {/* Shaft body */}
+      <rect x="0" y="4" width="16" height="6" fill={white} />
+      {/* Shaft highlight (top edge) */}
+      <rect x="0" y="4" width="16" height="1" fill={highlight} />
+
+      {/* Arrowhead - built pixel by pixel for authentic blocky look */}
+      <rect x="13" y="3" width="1" height="1" fill={highlight} />
+      <rect x="13" y="11" width="1" height="1" fill={shadow} />
+
+      <rect x="14" y="2" width="1" height="1" fill={highlight} />
+      <rect x="14" y="3" width="1" height="9" fill={white} />
+      <rect x="14" y="12" width="1" height="1" fill={shadow} />
+
+      <rect x="15" y="1" width="1" height="1" fill={highlight} />
+      <rect x="15" y="2" width="1" height="11" fill={white} />
+      <rect x="15" y="13" width="1" height="1" fill={shadow} />
+
+      <rect x="16" y="0" width="1" height="1" fill={highlight} />
+      <rect x="16" y="1" width="1" height="13" fill={white} />
+      <rect x="16" y="14" width="1" height="1" fill={shadow} />
+
+      <rect x="17" y="1" width="1" height="1" fill={highlight} />
+      <rect x="17" y="2" width="1" height="11" fill={white} />
+      <rect x="17" y="13" width="1" height="1" fill={shadow} />
+
+      <rect x="18" y="2" width="1" height="1" fill={highlight} />
+      <rect x="18" y="3" width="1" height="9" fill={white} />
+      <rect x="18" y="12" width="1" height="1" fill={shadow} />
+
+      <rect x="19" y="3" width="1" height="1" fill={highlight} />
+      <rect x="19" y="4" width="1" height="7" fill={white} />
+      <rect x="19" y="11" width="1" height="1" fill={shadow} />
+
+      <rect x="20" y="4" width="1" height="1" fill={highlight} />
+      <rect x="20" y="5" width="1" height="5" fill={white} />
+      <rect x="20" y="10" width="1" height="1" fill={shadow} />
+
+      <rect x="21" y="5" width="1" height="5" fill={white} />
     </svg>
   );
 }
@@ -211,7 +224,7 @@ function Slot({
                 right: 1 * S,
                 color: "#FFF",
                 fontSize: 8 * S,
-                fontFamily: "monospace",
+                fontFamily: "Silkscreen, monospace",
                 fontWeight: "bold",
                 textShadow: `${S}px ${S}px 0 #3F3F3F`,
                 lineHeight: 1,
@@ -244,7 +257,7 @@ function Tooltip({ item, x, y }: { item: ItemStack; x: number; y: number }) {
         color: "#FFF",
         padding: `${2 * S}px ${4 * S}px`,
         fontSize: 8 * S,
-        fontFamily: "monospace",
+        fontFamily: "Silkscreen, monospace",
         pointerEvents: "none",
         zIndex: 2000,
         whiteSpace: "nowrap",
@@ -604,7 +617,7 @@ export default function CraftingTable() {
                 right: 1 * S,
                 color: "#FFF",
                 fontSize: 8 * S,
-                fontFamily: "monospace",
+                fontFamily: "Silkscreen, monospace",
                 fontWeight: "bold",
                 textShadow: `${S}px ${S}px 0 #3F3F3F`,
                 lineHeight: 1,
