@@ -39,10 +39,14 @@ const buildMenuOptions = (gitState: GitState): ScopeMenuOption[] => {
 export const MainMenu = () => {
   const COLORS = useColors();
   const gitState = useAppStore((state) => state.gitState);
+  const autoRunAfterPlanning = useAppStore(
+    (state) => state.autoRunAfterPlanning
+  );
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
   const selectAction = useAppStore((state) => state.selectAction);
   const beginSavedFlowReuse = useAppStore((state) => state.beginSavedFlowReuse);
   const navigateTo = useAppStore((state) => state.navigateTo);
+  const toggleAutoRun = useAppStore((state) => state.toggleAutoRun);
   const setMainMenuOnAction = useAppStore((state) => state.setMainMenuOnAction);
   const [selectedIndex, setSelectedIndex] = useState(0);
 
@@ -64,18 +68,23 @@ export const MainMenu = () => {
     [navigateTo, selectAction]
   );
 
+  const totalItems = menuOptions.length + 1;
+  const autoRunIndex = menuOptions.length;
+
   useEffect(() => {
-    setMainMenuOnAction(selectedIndex < menuOptions.length);
-  }, [selectedIndex, menuOptions.length, setMainMenuOnAction]);
+    setMainMenuOnAction(selectedIndex < autoRunIndex);
+  }, [selectedIndex, autoRunIndex, setMainMenuOnAction]);
 
   useInput((input, key) => {
     if (key.downArrow || input === "j" || (key.ctrl && input === "n")) {
-      setSelectedIndex((previous) =>
-        Math.min(menuOptions.length - 1, previous + 1)
-      );
+      setSelectedIndex((previous) => Math.min(totalItems - 1, previous + 1));
     }
     if (key.upArrow || input === "k" || (key.ctrl && input === "p")) {
       setSelectedIndex((previous) => Math.max(0, previous - 1));
+    }
+
+    if (key.tab) {
+      toggleAutoRun();
     }
 
     if (input === "r" && canReuseSavedFlow && selectedOption) {
@@ -84,8 +93,12 @@ export const MainMenu = () => {
       }
     }
 
-    if (key.return && menuOptions.length > 0) {
-      activateOption(menuOptions[selectedIndex]);
+    if (key.return) {
+      if (selectedIndex === autoRunIndex) {
+        toggleAutoRun();
+      } else if (menuOptions.length > 0) {
+        activateOption(menuOptions[selectedIndex]);
+      }
     }
   });
 
@@ -125,6 +138,29 @@ export const MainMenu = () => {
             </Clickable>
           );
         })}
+      </Box>
+
+      <Box marginTop={1} marginBottom={1} flexDirection="column">
+        <Clickable onClick={toggleAutoRun}>
+          {selectedIndex === autoRunIndex ? (
+            <Text>
+              <Text color={COLORS.PRIMARY}>{"▸ "}</Text>
+              <Text color={COLORS.PRIMARY} bold>
+                auto-run after planning: {autoRunAfterPlanning ? "yes" : "no"}
+              </Text>
+            </Text>
+          ) : (
+            <Text color={autoRunAfterPlanning ? COLORS.TEXT : COLORS.DIM}>
+              {"  "}auto-run after planning:{" "}
+              <Text
+                color={autoRunAfterPlanning ? COLORS.GREEN : COLORS.DIM}
+                bold={autoRunAfterPlanning}
+              >
+                {autoRunAfterPlanning ? "yes" : "no"}
+              </Text>
+            </Text>
+          )}
+        </Clickable>
       </Box>
     </Box>
   );
