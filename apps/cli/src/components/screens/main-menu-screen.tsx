@@ -151,6 +151,7 @@ export const MainMenu = () => {
         <Text bold color={COLORS.TEXT}>
           browser-tester
         </Text>
+        <Text color={COLORS.DIM}>Press tab twice to quickstart</Text>
       </Box>
 
       <Text color={COLORS.DIM}>Branch / PR</Text>
