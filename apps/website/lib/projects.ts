@@ -12,11 +12,10 @@ interface Project {
 export const PROJECTS: Project[] = [
   {
     title: "testie",
-    description: "change your code → testie tests it in a real browser",
+    description:
+      "Testie lets coding agents test your code changes in a real browser.",
     features: [
-      "no playwright scripts",
-      "no selectors to maintain",
-      "just your git diff",
+      "No playwright scripts. No selectors. Just your git diff.",
     ],
     command: "npx testie@latest",
     agentPrompt: "npx -y testie@latest -m 'test my current changes' -y",
