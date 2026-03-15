@@ -5,9 +5,7 @@
 
 Let coding agents test your code in a real browser. One command scans your unstaged changes or branch diff, generates a test plan, and runs it against a live browser.
 
-1. **Plan**: Generates a test plan based on your changes and a natural language instruction.
-2. **Run**: Opens a real browser (headed or headless) and executes each step—clicking, typing, navigating, and asserting.
-3. **Report**: Surfaces pass/fail results with browser recordings so you can see exactly what happened.
+### [See it in action →](https://browser-tester-website.ami.construction/)
 
 ## Install
 
@@ -64,47 +62,7 @@ Options:
   -h, --help                    display help
 ```
 
-## Environment variables
-
-| Variable                  | Description                                           |
-| ------------------------- | ----------------------------------------------------- |
-| `BROWSER_TESTER_BASE_URL` | Default base URL for the browser                      |
-| `BROWSER_TESTER_HEADED`   | Set to `true` or `1` to run headed by default         |
-| `BROWSER_TESTER_COOKIES`  | Set to `true` or `1` to enable cookie sync by default |
-
-## Examples
-
-Test unstaged changes interactively:
-
-```bash
-testie
-```
-
-Test with a specific instruction, skip plan review:
-
-```bash
-testie -m "add an item to the cart and check out" -y
-```
-
-Test full branch diff:
-
-```bash
-testie branch -m "verify the new settings page" -y
-```
-
-Reuse a saved flow:
-
-```bash
-testie -f checkout-flow
-```
-
-Run with a custom base URL and visible browser:
-
-```bash
-testie --base-url http://localhost:5173 --headed
-```
-
-## Contributing
+## Development
 
 ```bash
 git clone https://github.com/millionco/testie
