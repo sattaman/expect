@@ -36,6 +36,7 @@ export const MainMenu = () => {
   const navigateTo = useAppStore((state) => state.navigateTo);
   const checkedOutBranch = useAppStore((state) => state.checkedOutBranch);
   const [value, setValue] = useState("");
+  const [inputKey, setInputKey] = useState(0);
   const [suggestionIndex, setSuggestionIndex] = useState(0);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [focus, setFocus] = useState<FocusArea>(
@@ -110,6 +111,7 @@ export const MainMenu = () => {
       }
       if (key.tab && currentSuggestion) {
         setValue(currentSuggestion);
+        setInputKey((previous) => previous + 1);
       }
     },
     { isActive: focus === "input" }
@@ -152,6 +154,7 @@ export const MainMenu = () => {
         >
           <Text color={COLORS.PRIMARY}>{"❯ "}</Text>
           <Input
+            key={inputKey}
             focus={focus === "input"}
             multiline
             placeholder={`${
