@@ -15,16 +15,29 @@ interface ScopeOption {
   action: TestAction | "select-pr";
 }
 
-const buildScopeOptions = (gitState: GitState): ScopeOption[] => {
+const buildScopeOptions = (
+  gitState: GitState,
+  checkedOutBranch: string | null,
+  checkedOutPrNumber: number | null
+): ScopeOption[] => {
   const options: ScopeOption[] = [];
 
-  if (gitState.hasUnstagedChanges) {
-    options.push({ label: "Unstaged changes", action: "test-unstaged" });
+  if (checkedOutBranch) {
+    const prLabel = checkedOutPrNumber ? ` · PR #${checkedOutPrNumber}` : "";
+    options.push({
+      label: `${checkedOutBranch}${prLabel}`,
+      action: "test-branch",
+    });
   }
 
-  if (!gitState.isOnMain && gitState.hasBranchCommits) {
+  options.push({
+    label: `Current changes (${gitState.currentBranch})`,
+    action: "test-unstaged",
+  });
+
+  if (!checkedOutBranch && !gitState.isOnMain && gitState.hasBranchCommits) {
     options.push({
-      label: `${gitState.currentBranch} (${gitState.branchCommitCount} commits)`,
+      label: `Entire branch (${gitState.branchCommitCount} commits)`,
       action: "test-branch",
     });
   }
@@ -49,6 +62,7 @@ export const MainMenu = () => {
   const selectAction = useAppStore((state) => state.selectAction);
   const navigateTo = useAppStore((state) => state.navigateTo);
   const checkedOutBranch = useAppStore((state) => state.checkedOutBranch);
+  const checkedOutPrNumber = useAppStore((state) => state.checkedOutPrNumber);
   const flowInstruction = useAppStore((state) => state.flowInstruction);
   const [value, setValue] = useState(flowInstruction);
   const [inputKey, setInputKey] = useState(0);
@@ -60,12 +74,19 @@ export const MainMenu = () => {
   const [focus, setFocus] = useState<FocusArea>(defaultFocus);
 
   useEffect(() => {
-    if (checkedOutBranch) setFocus("input");
+    if (checkedOutBranch) {
+      setFocus("input");
+      setScopeIndex(0);
+    }
   }, [checkedOutBranch]);
 
   if (!gitState) return null;
 
-  const scopeOptions = buildScopeOptions(gitState);
+  const scopeOptions = buildScopeOptions(
+    gitState,
+    checkedOutBranch,
+    checkedOutPrNumber
+  );
   const currentScope = scopeOptions[scopeIndex % scopeOptions.length];
   const testAction =
     currentScope?.action === "select-pr"
