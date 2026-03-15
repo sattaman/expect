@@ -98,6 +98,12 @@ export const PlanReviewScreen = () => {
   const updateEnvironment = useAppStore((state) => state.updateEnvironment);
   const requestPlanApproval = useAppStore((state) => state.requestPlanApproval);
   const loadSavedFlows = useAppStore((state) => state.loadSavedFlows);
+  const flowInstruction = useAppStore((state) => state.flowInstruction);
+  const selectAction = useAppStore((state) => state.selectAction);
+  const submitFlowInstruction = useAppStore(
+    (state) => state.submitFlowInstruction
+  );
+  const testAction = useAppStore((state) => state.testAction);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({
     assumptions: true,
@@ -108,6 +114,9 @@ export const PlanReviewScreen = () => {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [exitConfirmationVisible, setExitConfirmationVisible] = useState(false);
+  const [inputFocused, setInputFocused] = useState(false);
+  const [inputValue, setInputValue] = useState(flowInstruction);
+  const [resubmitConfirmVisible, setResubmitConfirmVisible] = useState(false);
 
   if (!plan || !resolvedTarget) return null;
 
@@ -184,6 +193,18 @@ export const PlanReviewScreen = () => {
       return;
     }
 
+    if (resubmitConfirmVisible) {
+      if (input.toLowerCase() === "y" && testAction) {
+        selectAction(testAction);
+        submitFlowInstruction(inputValue.trim());
+      }
+      if (input.toLowerCase() === "n" || key.escape) {
+        setResubmitConfirmVisible(false);
+        setInputValue(flowInstruction);
+      }
+      return;
+    }
+
     if (exitConfirmationVisible) {
       if (input.toLowerCase() === "y") {
         goBack();
@@ -193,6 +214,10 @@ export const PlanReviewScreen = () => {
         setExitConfirmationVisible(false);
       }
 
+      return;
+    }
+
+    if (inputFocused) {
       return;
     }
 
@@ -266,12 +291,76 @@ export const PlanReviewScreen = () => {
     }
   });
 
+  useInput(
+    (_input, key) => {
+      if (key.escape) {
+        setInputFocused(false);
+        setInputValue(flowInstruction);
+      }
+    },
+    { isActive: inputFocused && !resubmitConfirmVisible }
+  );
+
+  const handleInputSubmit = () => {
+    const trimmed = inputValue.trim();
+    if (!trimmed || trimmed === flowInstruction) {
+      setInputFocused(false);
+      setInputValue(flowInstruction);
+      return;
+    }
+    setResubmitConfirmVisible(true);
+  };
+
   const isSectionSelected = (section: Section) =>
     currentItem?.kind === "section" && currentItem.section === section;
 
   return (
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <ScreenHeading title="Review browser plan" subtitle={plan.title} />
+
+      <Clickable onClick={() => setInputFocused(true)}>
+        <Box
+          marginTop={1}
+          borderStyle="round"
+          borderColor={inputFocused ? COLORS.PRIMARY : COLORS.BORDER}
+          paddingX={2}
+        >
+          {inputFocused ? (
+            <>
+              <Text color={COLORS.PRIMARY}>{"❯ "}</Text>
+              <Input
+                focus
+                multiline
+                value={inputValue}
+                onSubmit={handleInputSubmit}
+                onChange={(nextValue) =>
+                  setInputValue(stripMouseSequences(nextValue))
+                }
+              />
+            </>
+          ) : (
+            <Text color={COLORS.DIM}>{flowInstruction}</Text>
+          )}
+        </Box>
+      </Clickable>
+
+      {resubmitConfirmVisible ? (
+        <Box
+          marginTop={1}
+          borderStyle="round"
+          borderColor={COLORS.YELLOW}
+          paddingX={1}
+        >
+          <Text color={COLORS.YELLOW} bold>
+            Re-generate plan with new description?
+          </Text>
+          <Text color={COLORS.DIM}>
+            {" "}
+            Press <Text color={COLORS.PRIMARY}>y</Text> to submit or{" "}
+            <Text color={COLORS.PRIMARY}>n</Text> to cancel.
+          </Text>
+        </Box>
+      ) : null}
 
       {cookieSyncIsRequired ? (
         <Box
