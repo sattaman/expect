@@ -19,16 +19,14 @@ interface HintBarProps {
 
 const HintContent = ({
   segment,
-  color,
   mutedColor,
 }: {
   segment: HintSegment;
-  color: string;
   mutedColor: string;
 }) => (
   <>
     <Text color={segment.color ?? mutedColor}>{segment.label} </Text>
-    <Text color={segment.color ?? color} bold>
+    <Text color={segment.color ?? mutedColor}>
       [{segment.key}]
     </Text>
   </>
@@ -41,10 +39,10 @@ export const HintBar = ({ segments, color, mutedColor }: HintBarProps) => (
       <Box key={segment.key + segment.label}>
         {segment.onClick ? (
           <Clickable fullWidth={false} onClick={segment.onClick}>
-            <HintContent segment={segment} color={color} mutedColor={mutedColor} />
+            <HintContent segment={segment} mutedColor={mutedColor} />
           </Clickable>
         ) : (
-          <HintContent segment={segment} color={color} mutedColor={mutedColor} />
+          <HintContent segment={segment} mutedColor={mutedColor} />
         )}
         {index < segments.length - 1 && <Text color={mutedColor}>{HINT_SEPARATOR}</Text>}
       </Box>

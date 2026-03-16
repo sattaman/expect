@@ -156,6 +156,21 @@ export const Input = ({
           onDownArrowAtBottom?.();
         }
         handled = true;
+      } else if (key.ctrl && input === "a" && showCursor) {
+        nextCursorOffset = 0;
+        handled = true;
+      } else if (key.ctrl && input === "e" && showCursor) {
+        nextCursorOffset = originalValue.length;
+        handled = true;
+      } else if (key.ctrl && input === "f" && showCursor) {
+        nextCursorOffset = cursorOffset + 1;
+        handled = true;
+      } else if (key.ctrl && input === "b" && showCursor) {
+        nextCursorOffset = cursorOffset - 1;
+        handled = true;
+      } else if (key.ctrl && input === "k") {
+        nextValue = originalValue.slice(0, cursorOffset);
+        handled = true;
       } else if (key.ctrl && input === "u") {
         if (cursorOffset > 0) {
           nextValue = originalValue.slice(cursorOffset);
@@ -167,6 +182,22 @@ export const Input = ({
           const wordBoundary = findPreviousWordBoundary(originalValue, cursorOffset);
           nextValue = originalValue.slice(0, wordBoundary) + originalValue.slice(cursorOffset);
           nextCursorOffset = wordBoundary;
+        }
+        handled = true;
+      } else if (key.ctrl && input === "d") {
+        if (cursorOffset < originalValue.length) {
+          nextValue =
+            originalValue.slice(0, cursorOffset) + originalValue.slice(cursorOffset + 1);
+        }
+        handled = true;
+      } else if (key.ctrl && input === "t") {
+        if (cursorOffset > 0 && cursorOffset < originalValue.length) {
+          nextValue =
+            originalValue.slice(0, cursorOffset - 1) +
+            originalValue[cursorOffset] +
+            originalValue[cursorOffset - 1] +
+            originalValue.slice(cursorOffset + 1);
+          nextCursorOffset = cursorOffset + 1;
         }
         handled = true;
       } else if (key.meta && input === "b" && showCursor) {
