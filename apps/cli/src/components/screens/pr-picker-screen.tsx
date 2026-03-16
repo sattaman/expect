@@ -264,7 +264,7 @@ export const PrPickerScreen = () => {
         <Box
           marginTop={1}
           flexDirection="column"
-          borderStyle="round"
+          borderStyle="single"
           borderColor={COLORS.YELLOW}
           paddingX={1}
         >

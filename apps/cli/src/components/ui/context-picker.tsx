@@ -82,14 +82,14 @@ export const ContextPicker = ({
 
   if (options.length === 0 && !isLoading) {
     return (
-      <Box flexDirection="column" borderStyle="round" borderColor={COLORS.BORDER} paddingX={1}>
+      <Box flexDirection="column" borderStyle="single" borderColor={COLORS.BORDER} paddingX={1}>
         <Text color={COLORS.DIM}>No matching results</Text>
       </Box>
     );
   }
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.PRIMARY} paddingX={1}>
+    <Box flexDirection="column" borderStyle="single" borderColor={COLORS.PRIMARY} paddingX={1}>
       {visibleOptions.map((option, index) => {
         const actualIndex = index + scrollOffset;
         const isSelected = actualIndex === selectedIndex;

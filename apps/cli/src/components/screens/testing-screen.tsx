@@ -231,7 +231,7 @@ export const TestingScreen = () => {
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <ScreenHeading
         title="Executing browser plan"
-        subtitle={`${plan.title} · ${target.displayName}`}
+        subtitle={`${plan.title} │ ${target.displayName}`}
       />
 
       <Box marginTop={1}>
@@ -285,7 +285,7 @@ export const TestingScreen = () => {
         <Box
           flexDirection="column"
           marginTop={1}
-          borderStyle="round"
+          borderStyle="single"
           borderColor={COLORS.YELLOW}
           paddingX={1}
         >

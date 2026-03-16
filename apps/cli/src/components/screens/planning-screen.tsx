@@ -26,7 +26,7 @@ export const PlanningScreen = () => {
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <Box flexDirection="column">
         <Text color={COLORS.DIM}>{selectedContext ? selectedContext.label : "Describe what to test"}</Text>
-        <Box borderStyle="round" borderColor={COLORS.BORDER} paddingX={2}>
+        <Box borderStyle="single" borderColor={COLORS.BORDER} paddingX={1}>
           <Text color={COLORS.DIM}>{flowInstruction}</Text>
         </Box>
       </Box>

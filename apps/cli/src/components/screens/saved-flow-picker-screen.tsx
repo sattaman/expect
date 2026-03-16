@@ -173,7 +173,7 @@ export const SavedFlowPickerScreen = () => {
         <Box
           flexDirection="column"
           marginTop={1}
-          borderStyle="round"
+          borderStyle="single"
           borderColor={COLORS.YELLOW}
           paddingX={1}
         >

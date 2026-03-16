@@ -75,7 +75,7 @@ export const CookieSyncConfirmScreen = () => {
       <Box
         flexDirection="column"
         marginTop={1}
-        borderStyle="round"
+        borderStyle="single"
         borderColor={COLORS.RED}
         paddingX={1}
       >

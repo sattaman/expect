@@ -142,14 +142,14 @@ export const ResultsScreen = () => {
   return (
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <ScreenHeading
-        title="Browser run results"
-        subtitle={`${latestRunReport.title} · ${latestRunReport.status}`}
+        title="Run results"
+        subtitle={`${latestRunReport.title} │ ${latestRunReport.status.toUpperCase()}`}
       />
 
       <Box
         flexDirection="column"
         marginTop={1}
-        borderStyle="round"
+        borderStyle="single"
         borderColor={latestRunReport.status === "passed" ? COLORS.GREEN : COLORS.RED}
         paddingX={1}
       >
@@ -169,7 +169,7 @@ export const ResultsScreen = () => {
 
       <Box flexDirection="column" marginTop={1}>
         <Text color={COLORS.DIM} bold>
-          Findings
+          FINDINGS
         </Text>
         {latestRunReport.findings.length > 0 ? (
           latestRunReport.findings.map((finding) => (
@@ -187,7 +187,7 @@ export const ResultsScreen = () => {
 
       <Box flexDirection="column" marginTop={1}>
         <Text color={COLORS.DIM} bold>
-          Step summary
+          STEP SUMMARY
         </Text>
         {latestRunReport.stepResults.map((stepResult) => (
           <Text
@@ -210,7 +210,7 @@ export const ResultsScreen = () => {
       latestRunReport.unresolvedRiskAreas.length > 0 ? (
         <Box flexDirection="column" marginTop={1}>
           <Text color={COLORS.DIM} bold>
-            Risk areas
+            RISK AREAS
           </Text>
           {latestRunReport.confirmedRiskAreas.map((riskArea) => (
             <Text key={`confirmed-${riskArea}`} color={COLORS.RED}>
@@ -232,7 +232,7 @@ export const ResultsScreen = () => {
 
       <Box flexDirection="column" marginTop={1}>
         <Text color={COLORS.DIM} bold>
-          Artifacts
+          ARTIFACTS
         </Text>
         {latestRunReport.artifacts.highlightVideoPath ? (
           <Text color={COLORS.DIM}>
@@ -268,12 +268,12 @@ export const ResultsScreen = () => {
         <Box
           flexDirection="column"
           marginTop={1}
-          borderStyle="round"
+          borderStyle="single"
           borderColor={COLORS.YELLOW}
           paddingX={1}
         >
           <Text color={COLORS.YELLOW} bold>
-            Artifact warnings
+            ARTIFACT WARNINGS
           </Text>
           {latestRunReport.warnings.map((warning) => (
             <Text key={warning} color={COLORS.DIM}>

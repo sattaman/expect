@@ -29,7 +29,7 @@ export const UntestedChangesBanner = () => {
   return (
     <Box
       flexDirection="column"
-      borderStyle="round"
+      borderStyle="single"
       borderColor={COLORS.YELLOW}
       paddingX={1}
       marginBottom={1}

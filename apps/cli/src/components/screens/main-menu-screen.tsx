@@ -252,7 +252,7 @@ export const MainMenu = () => {
     <Box flexDirection="column" width="100%" paddingX={1} paddingY={1}>
       <Box flexDirection="column" marginBottom={1}>
         <Text bold color={COLORS.TEXT}>
-          browser-tester
+          BROWSER-TESTER
         </Text>
       </Box>
 
@@ -286,9 +286,9 @@ export const MainMenu = () => {
         <Clickable onClick={() => setFocus("input")}>
           <Box
             width="100%"
-            borderStyle="round"
+            borderStyle="single"
             borderColor={focus === "input" ? COLORS.PRIMARY : COLORS.BORDER}
-            paddingX={2}
+            paddingX={1}
           >
             <Text color={COLORS.PRIMARY}>{"❯ "}</Text>
             <Input

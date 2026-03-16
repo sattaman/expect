@@ -77,17 +77,18 @@ const StepPreview = ({ step, stepNumber, totalSteps }: StepPreviewProps) => {
   const COLORS = useColors();
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor={COLORS.PRIMARY} paddingX={2}>
+    <Box flexDirection="column" borderStyle="single" borderColor={COLORS.BORDER} paddingX={1}>
       <Text color={COLORS.PRIMARY} bold>
-        Step {stepNumber}/{totalSteps} — {step.title}
+        STEP {stepNumber}/{totalSteps} │ {step.title}
       </Text>
-      <Text color={COLORS.TEXT}>{step.instruction}</Text>
-      <Box marginTop={1} flexDirection="column">
-        <Text color={COLORS.DIM} bold>
-          Expected
-        </Text>
+      <Text color={COLORS.DIM}>
+        {"ACTION    "}
+        <Text color={COLORS.TEXT}>{step.instruction}</Text>
+      </Text>
+      <Text color={COLORS.DIM}>
+        {"EXPECTED  "}
         <Text color={COLORS.GREEN}>{step.expectedOutcome}</Text>
-      </Box>
+      </Text>
     </Box>
   );
 };
@@ -456,9 +457,9 @@ export const PlanReviewScreen = () => {
         <Clickable onClick={() => setTopFocus("input")}>
           <Box
             width="100%"
-            borderStyle="round"
+            borderStyle="single"
             borderColor={inputFocused ? COLORS.PRIMARY : COLORS.BORDER}
-            paddingX={2}
+            paddingX={1}
           >
             {inputFocused ? (
               <>
@@ -502,7 +503,7 @@ export const PlanReviewScreen = () => {
       </Box>
 
       {resubmitConfirmVisible ? (
-        <Box marginTop={1} borderStyle="round" borderColor={COLORS.YELLOW} paddingX={1}>
+        <Box marginTop={1} borderStyle="single" borderColor={COLORS.YELLOW} paddingX={1}>
           <Text color={COLORS.YELLOW} bold>
             Re-generate plan with new description?
           </Text>
@@ -518,7 +519,7 @@ export const PlanReviewScreen = () => {
         <Box
           flexDirection="column"
           marginTop={1}
-          borderStyle="round"
+          borderStyle="single"
           borderColor={cookieSyncNeedsAttention ? COLORS.RED : COLORS.YELLOW}
           paddingX={1}
         >
@@ -566,13 +567,13 @@ export const PlanReviewScreen = () => {
             onToggle={() => toggleSection("cookies")}
           >
             <Text color={COLORS.DIM}>
-              {"required  "}
+              {"REQUIRED  "}
               <Text color={COLORS.YELLOW} bold>
                 yes
               </Text>
             </Text>
             <Text color={COLORS.DIM}>
-              {"reason    "}
+              {"REASON    "}
               <Text color={COLORS.TEXT}>{plan.cookieSync.reason}</Text>
             </Text>
             <Clickable
@@ -584,7 +585,7 @@ export const PlanReviewScreen = () => {
               }
             >
               <Text color={COLORS.DIM}>
-                {"sync      "}
+                {"SYNC      "}
                 <Text color={cookiesEnabled ? COLORS.GREEN : COLORS.RED} bold>
                   {cookiesEnabled ? "on" : "off"}
                 </Text>
@@ -592,7 +593,7 @@ export const PlanReviewScreen = () => {
               </Text>
             </Clickable>
             <Text color={COLORS.DIM}>
-              {"impact    "}
+              {"IMPACT    "}
               <Text color={cookieSyncNeedsAttention ? COLORS.RED : COLORS.TEXT}>
                 {cookieSyncNeedsAttention
                   ? "Without synced cookies, this run is more likely to fail."
@@ -712,7 +713,7 @@ export const PlanReviewScreen = () => {
         <Box
           flexDirection="column"
           marginTop={1}
-          borderStyle="round"
+          borderStyle="single"
           borderColor={COLORS.YELLOW}
           paddingX={1}
         >

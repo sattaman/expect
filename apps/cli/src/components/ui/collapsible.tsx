@@ -22,8 +22,9 @@ export const Collapsible = ({
 }: CollapsibleProps) => {
   const COLORS = useColors();
   const contentColor = selected ? COLORS.TEXT : COLORS.DIM;
-  const arrow = open ? "▾" : "▸";
-  const countSuffix = count !== undefined ? ` (${count})` : "";
+  const arrow = open ? "─" : "+";
+  const upperLabel = label.toUpperCase();
+  const countSuffix = count !== undefined ? ` [${count}]` : "";
 
   return (
     <Box flexDirection="column">
@@ -31,7 +32,7 @@ export const Collapsible = ({
         <Text>
           <Text color={selected ? COLORS.PRIMARY : COLORS.DIM}>{arrow} </Text>
           <Text bold={selected} color={contentColor}>
-            {label}
+            {upperLabel}
             {countSuffix}
           </Text>
         </Text>
