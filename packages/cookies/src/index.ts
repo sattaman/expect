@@ -1,21 +1,16 @@
 export { Cookies } from "./cookies.js";
-export { ChromiumExtractor } from "./chromium-extractor.js";
-export { FirefoxExtractor } from "./firefox-extractor.js";
-export { SafariExtractor } from "./safari-extractor.js";
-export { BrowserDetector, type DetectBrowserProfilesOptions } from "./browser-detector.js";
+export { Browsers } from "./browser-detector.js";
 export { CdpClient } from "./cdp-client.js";
+export { SqliteClient, SqliteEngine } from "./sqlite-client.js";
+export { ChromiumSource, ChromiumPlatform } from "./chromium.js";
+export { FirefoxSource, FirefoxPlatform } from "./firefox.js";
+export { SafariSource, SafariPlatform } from "./safari.js";
+export { layerLive } from "./layers.js";
 
 export {
-  matchCookies,
-  matchCookieHeader,
-  toPlaywrightCookies,
-  toPuppeteerCookies,
-  type PlaywrightCookie,
-  type PuppeteerCookie,
-} from "./utils/cookie-format.js";
-export { toCookieHeader, dedupeCookies } from "./utils/host-matching.js";
-
-export {
+  ExtractionError,
+  RequiresFullDiskAccess,
+  ListBrowsersError,
   CookieDatabaseNotFoundError,
   CookieDatabaseCopyError,
   CookieDecryptionKeyError,
@@ -25,17 +20,20 @@ export {
   BrowserSpawnError,
   UnsupportedPlatformError,
   UnsupportedBrowserError,
+  UnknownError,
 } from "./errors.js";
 
 export { BROWSER_CONFIGS, configByKey } from "./browser-config.js";
 
-export type {
-  Browser,
-  BrowserInfo,
-  BrowserProfile,
+export {
+  BrowserKey,
+  ChromiumBrowserKey,
   ChromiumBrowser,
+  FirefoxBrowser,
+  SafariBrowser,
+  Browser,
   Cookie,
-  ExtractOptions,
-  ExtractProfileOptions,
   SameSitePolicy,
 } from "./types.js";
+
+export type { ExtractOptions } from "./types.js";

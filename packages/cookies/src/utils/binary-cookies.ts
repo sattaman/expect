@@ -1,5 +1,4 @@
-import { stripLeadingDot } from "./host-matching.js";
-import type { Cookie } from "../types.js";
+import { Cookie } from "../types.js";
 
 const MAC_EPOCH_DELTA_SECONDS = 978_307_200;
 const BINARY_COOKIE_PAGE_HEADER = 0x00000100;
@@ -20,7 +19,11 @@ const BINARY_COOKIE_EXPIRATION_OFFSET = 40;
 
 export const parseBinaryCookies = (buffer: Buffer): Cookie[] => {
   if (buffer.length < BINARY_COOKIE_MIN_HEADER_BYTES) return [];
-  if (buffer.subarray(0, UINT32_SIZE_BYTES).toString("utf8") !== BINARY_COOKIE_MAGIC) return [];
+  if (
+    buffer.subarray(0, UINT32_SIZE_BYTES).toString("utf8") !==
+    BINARY_COOKIE_MAGIC
+  )
+    return [];
 
   const pageCount = buffer.readUInt32BE(UINT32_SIZE_BYTES);
   let cursor = BINARY_COOKIE_MIN_HEADER_BYTES;
@@ -67,7 +70,8 @@ const decodeCookieRecord = (record: Buffer): Cookie | undefined => {
   if (record.length < BINARY_COOKIE_MIN_RECORD_BYTES) return undefined;
 
   const size = record.readUInt32LE(0);
-  if (size < BINARY_COOKIE_MIN_RECORD_BYTES || size > record.length) return undefined;
+  if (size < BINARY_COOKIE_MIN_RECORD_BYTES || size > record.length)
+    return undefined;
 
   const flags = record.readUInt32LE(BINARY_COOKIE_FLAGS_OFFSET);
   const isSecure = (flags & BINARY_COOKIE_SECURE_FLAG) !== 0;
@@ -89,9 +93,11 @@ const decodeCookieRecord = (record: Buffer): Cookie | undefined => {
 
   const domain = rawUrl ? safeHostname(rawUrl) : undefined;
   const expires =
-    expiration && expiration > 0 ? Math.round(expiration + MAC_EPOCH_DELTA_SECONDS) : undefined;
+    expiration && expiration > 0
+      ? Math.round(expiration + MAC_EPOCH_DELTA_SECONDS)
+      : undefined;
 
-  return {
+  return Cookie.make({
     name,
     value,
     domain: domain ?? "",
@@ -99,8 +105,7 @@ const decodeCookieRecord = (record: Buffer): Cookie | undefined => {
     expires,
     secure: isSecure,
     httpOnly: isHttpOnly,
-    browser: "safari",
-  };
+  });
 };
 
 const readDoubleLE = (buffer: Buffer, offset: number): number => {
@@ -108,7 +113,11 @@ const readDoubleLE = (buffer: Buffer, offset: number): number => {
   return buffer.subarray(offset, offset + DOUBLE_SIZE_BYTES).readDoubleLE(0);
 };
 
-const readCString = (buffer: Buffer, offset: number, end: number): string | undefined => {
+const readCString = (
+  buffer: Buffer,
+  offset: number,
+  end: number
+): string | undefined => {
   if (offset <= 0 || offset >= end) return undefined;
 
   let cursor = offset;
@@ -122,10 +131,10 @@ const readCString = (buffer: Buffer, offset: number, end: number): string | unde
 const safeHostname = (raw: string): string | undefined => {
   try {
     const url = raw.includes("://") ? raw : `https://${raw}`;
-    return stripLeadingDot(new URL(url).hostname);
+    return new URL(url).hostname;
   } catch {
     const cleaned = raw.trim();
-    if (!cleaned) return undefined;
-    return stripLeadingDot(cleaned);
+    if (cleaned === "") return undefined;
+    return cleaned;
   }
 };

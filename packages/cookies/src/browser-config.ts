@@ -1,4 +1,4 @@
-import type { Browser, ChromiumBrowser } from "./types.js";
+import type { BrowserKey, ChromiumBrowserKey } from "./types.js";
 
 interface PlatformPaths {
   readonly darwin: string;
@@ -8,7 +8,7 @@ interface PlatformPaths {
 
 export interface ChromiumConfig {
   readonly kind: "chromium";
-  readonly key: ChromiumBrowser;
+  readonly key: ChromiumBrowserKey;
   readonly displayName: string;
   readonly bundleId: string;
   readonly desktopFiles: readonly string[];
@@ -51,7 +51,7 @@ export interface SafariConfig {
 export type BrowserConfig = ChromiumConfig | FirefoxConfig | SafariConfig;
 
 const chromium = (
-  key: ChromiumBrowser,
+  key: ChromiumBrowserKey,
   displayName: string,
   bundleId: string,
   desktopFiles: readonly string[],
@@ -169,7 +169,7 @@ export const CHROMIUM_CONFIGS: readonly ChromiumConfig[] = [
     "/Applications/Dia.app/Contents/MacOS/Dia",
     ["/usr/bin/dia", "/usr/local/bin/dia", "/snap/bin/dia"],
     ["Dia\\Application\\dia.exe"],
-    { darwin: "Dia", linux: "dia", win32: "Dia\\User Data" },
+    { darwin: "Dia/User Data", linux: "dia", win32: "Dia\\User Data" },
     {
       darwin: "Library/Application Support/Dia/User Data/Default",
       linux: ".config/dia/Default",
@@ -467,7 +467,7 @@ export const BROWSER_CONFIGS: readonly BrowserConfig[] = [
 const bundleIdMap = new Map<string, BrowserConfig>();
 const desktopFileMap = new Map<string, BrowserConfig>();
 const displayNameMap = new Map<string, BrowserConfig>();
-const keyMap = new Map<Browser, BrowserConfig>();
+const keyMap = new Map<BrowserKey, BrowserConfig>();
 
 for (const config of BROWSER_CONFIGS) {
   keyMap.set(config.key, config);
@@ -483,7 +483,7 @@ for (const config of BROWSER_CONFIGS) {
 // HACK: Edge has two bundle IDs
 bundleIdMap.set("com.microsoft.edge", keyMap.get("edge")!);
 
-export const configByKey = (key: Browser): BrowserConfig | undefined => keyMap.get(key);
+export const configByKey = (key: BrowserKey): BrowserConfig | undefined => keyMap.get(key);
 
 export const configByBundleId = (identifier: string): BrowserConfig | undefined =>
   bundleIdMap.get(identifier.toLowerCase());
@@ -494,5 +494,5 @@ export const configByDesktopFile = (name: string): BrowserConfig | undefined =>
 export const configByDisplayName = (name: string): BrowserConfig | undefined =>
   displayNameMap.get(name);
 
-export const chromiumConfig = (key: ChromiumBrowser): ChromiumConfig =>
+export const chromiumConfig = (key: ChromiumBrowserKey): ChromiumConfig =>
   CHROMIUM_CONFIGS.find((config) => config.key === key)!;

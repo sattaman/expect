@@ -1,5 +1,5 @@
 import path from "node:path";
-import { Effect, Layer, ServiceMap } from "effect";
+import { Effect, Layer, Scope, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
 import { NodeServices } from "@effect/platform-node";
 import LibsqlDatabase from "libsql";
@@ -9,112 +9,144 @@ const IS_BUN = "Bun" in globalThis;
 const BUN_SQLITE_MODULE = "bun:sqlite";
 const NODE_SQLITE_MODULE = "node:sqlite";
 
-type SqliteRows = Array<Record<string, unknown>>;
+interface SqliteDatabase {
+  prepare(sql: string): { all(): Record<string, unknown>[] };
+  close(): void;
+}
 
-const queryWithNodeSqlite = Effect.fn("SqliteClient.queryWithNodeSqlite")(function* (
-  databasePath: string,
-  sqlQuery: string,
-  browser: string,
-) {
-  return yield* Effect.tryPromise({
-    try: async () => {
-      const { DatabaseSync } = await import(NODE_SQLITE_MODULE);
-      const database = new DatabaseSync(databasePath, { readOnly: true, readBigInts: true });
-      try {
-        return database.prepare(sqlQuery).all() as SqliteRows;
-      } finally {
-        database.close();
-      }
-    },
-    catch: (cause) => new CookieReadError({ browser, cause: String(cause) }),
+export class SqliteEngine extends ServiceMap.Service<
+  SqliteEngine,
+  {
+    readonly open: (
+      databasePath: string
+    ) => Effect.Effect<SqliteDatabase, CookieReadError, Scope.Scope>;
+  }
+>()("@cookies/SqliteEngine") {
+  static layerBun = Layer.succeed(this, {
+    open: (databasePath: string) =>
+      Effect.acquireRelease(
+        Effect.tryPromise({
+          try: async () => {
+            const { Database } = await import(BUN_SQLITE_MODULE);
+            return new Database(databasePath, {
+              readonly: true,
+            }) as SqliteDatabase;
+          },
+          catch: (cause) =>
+            new CookieReadError({ browser: "unknown", cause: String(cause) }),
+        }),
+        (database) => Effect.sync(() => database.close())
+      ),
   });
-});
 
-const queryWithLibsql = Effect.fn("SqliteClient.queryWithLibsql")(function* (
-  databasePath: string,
-  sqlQuery: string,
-  browser: string,
-) {
-  return yield* Effect.try({
-    try: () => {
-      const database = new LibsqlDatabase(databasePath, { readonly: true });
-      try {
-        return database.prepare(sqlQuery).all() as SqliteRows;
-      } finally {
-        database.close();
-      }
-    },
-    catch: (cause) => new CookieReadError({ browser, cause: String(cause) }),
+  static layerNodeJs = Layer.succeed(this, {
+    open: (databasePath: string) =>
+      Effect.acquireRelease(
+        Effect.tryPromise({
+          try: async () => {
+            const { Database } = await import(NODE_SQLITE_MODULE);
+            return new Database(databasePath, {
+              readOnly: true,
+              readBigInts: true,
+            }) as unknown as SqliteDatabase;
+          },
+          catch: (cause) =>
+            new CookieReadError({ browser: "unknown", cause: String(cause) }),
+        }),
+        (database) => Effect.sync(() => database.close())
+      ),
   });
-});
 
-const queryWithBun = Effect.fn("SqliteClient.queryWithBun")(function* (
-  databasePath: string,
-  sqlQuery: string,
-  browser: string,
-) {
-  return yield* Effect.tryPromise({
-    try: async () => {
-      const { Database } = await import(BUN_SQLITE_MODULE);
-      const database = new Database(databasePath, { readonly: true });
-      try {
-        return database.query(sqlQuery).all() as SqliteRows;
-      } finally {
-        database.close();
-      }
-    },
-    catch: (cause) => new CookieReadError({ browser, cause: String(cause) }),
+  static layerLibSql = Layer.succeed(this, {
+    open: (databasePath: string) =>
+      Effect.acquireRelease(
+        Effect.try({
+          try: () =>
+            new LibsqlDatabase(databasePath, {
+              readonly: true,
+            }) as unknown as SqliteDatabase,
+          catch: (cause) =>
+            new CookieReadError({ browser: "unknown", cause: String(cause) }),
+        }),
+        (database) => Effect.sync(() => database.close())
+      ),
   });
-});
+}
 
-export class SqliteClient extends ServiceMap.Service<SqliteClient>()("@cookies/SqliteClient", {
-  make: Effect.gen(function* () {
-    const fileSystem = yield* FileSystem.FileSystem;
+export class SqliteClient extends ServiceMap.Service<SqliteClient>()(
+  "@cookies/SqliteClient",
+  {
+    make: Effect.gen(function* () {
+      const engine = yield* SqliteEngine;
+      const fileSystem = yield* FileSystem.FileSystem;
 
-    const query = Effect.fn("SqliteClient.query")(function* (
-      databasePath: string,
-      sqlQuery: string,
-      browser: string,
-    ) {
-      yield* Effect.annotateCurrentSpan({ browser, databasePath });
-      if (IS_BUN) return yield* queryWithBun(databasePath, sqlQuery, browser);
+      const query = Effect.fn("SqliteClient.query")(function* (
+        databasePath: string,
+        sqlQuery: string,
+        browser: string
+      ) {
+        yield* Effect.annotateCurrentSpan({ browser, databasePath });
+        const database = yield* engine
+          .open(databasePath)
+          .pipe(
+            Effect.mapError(
+              (error) => new CookieReadError({ browser, cause: error.cause })
+            )
+          );
+        return yield* Effect.try({
+          try: () => database.prepare(sqlQuery).all(),
+          catch: (cause) =>
+            new CookieReadError({ browser, cause: String(cause) }),
+        });
+      },
+      Effect.scoped);
 
-      return yield* queryWithNodeSqlite(databasePath, sqlQuery, browser).pipe(
-        Effect.catchTag("CookieReadError", () => queryWithLibsql(databasePath, sqlQuery, browser)),
-      );
-    });
-
-    const copyToTemp = Effect.fn("SqliteClient.copyToTemp")(function* (
-      databasePath: string,
-      prefix: string,
-      filename: string,
-      browser: string,
-    ) {
-      const tempDir = yield* fileSystem.makeTempDirectory({ prefix });
-      yield* Effect.addFinalizer(() =>
-        fileSystem.remove(tempDir, { recursive: true }).pipe(Effect.catch(() => Effect.void)),
-      );
-
-      const tempDatabasePath = path.join(tempDir, filename);
-      yield* fileSystem
-        .copyFile(databasePath, tempDatabasePath)
-        .pipe(
-          Effect.catchTag("PlatformError", (cause) =>
-            new CookieDatabaseCopyError({ browser, databasePath, cause: String(cause) }).asEffect(),
-          ),
+      const copyToTemp = Effect.fn("SqliteClient.copyToTemp")(function* (
+        databasePath: string,
+        prefix: string,
+        filename: string,
+        browser: string
+      ) {
+        const tempDir = yield* fileSystem.makeTempDirectory({ prefix });
+        yield* Effect.addFinalizer(() =>
+          fileSystem
+            .remove(tempDir, { recursive: true })
+            .pipe(Effect.catch(() => Effect.void))
         );
-      yield* fileSystem
-        .copyFile(`${databasePath}-wal`, `${tempDatabasePath}-wal`)
-        .pipe(Effect.catch(() => Effect.void));
-      yield* fileSystem
-        .copyFile(`${databasePath}-shm`, `${tempDatabasePath}-shm`)
-        .pipe(Effect.catch(() => Effect.void));
 
-      return { tempDir, tempDatabasePath };
-    });
+        const tempDatabasePath = path.join(tempDir, filename);
+        yield* fileSystem.copyFile(databasePath, tempDatabasePath).pipe(
+          Effect.catchTag("PlatformError", (cause) =>
+            new CookieDatabaseCopyError({
+              browser,
+              databasePath,
+              cause: String(cause),
+            }).asEffect()
+          )
+        );
+        yield* fileSystem
+          .copyFile(`${databasePath}-wal`, `${tempDatabasePath}-wal`)
+          .pipe(Effect.catch(() => Effect.void));
+        yield* fileSystem
+          .copyFile(`${databasePath}-shm`, `${tempDatabasePath}-shm`)
+          .pipe(Effect.catch(() => Effect.void));
 
-    return { query, copyToTemp } as const;
-  }),
-}) {
-  static layer = Layer.effect(this)(this.make).pipe(Layer.provide(NodeServices.layer));
+        return { tempDir, tempDatabasePath };
+      });
+
+      return { query, copyToTemp } as const;
+    }),
+  }
+) {
+  static layerBun = Layer.effect(this, this.make).pipe(
+    Layer.provide(SqliteEngine.layerBun),
+    Layer.provide(NodeServices.layer)
+  );
+
+  static layerNodeJs = Layer.effect(this, this.make).pipe(
+    Layer.provide(SqliteEngine.layerNodeJs),
+    Layer.provide(NodeServices.layer)
+  );
+
+  static layer = IS_BUN ? this.layerBun : this.layerNodeJs;
 }

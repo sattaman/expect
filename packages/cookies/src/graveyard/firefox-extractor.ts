@@ -1,3 +1,9 @@
+/**
+ * @deprecated ARCHIVED / DEAD CODE
+ * Do not import, pattern-match on, or reference this code in new work.
+ * Kept only as reference for browser SQLite decryption and cookie extraction logic.
+ */
+
 import { homedir, platform } from "node:os";
 import path from "node:path";
 import { Effect, Layer, Match, ServiceMap } from "effect";

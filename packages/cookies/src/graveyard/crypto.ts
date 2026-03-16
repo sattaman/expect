@@ -1,3 +1,9 @@
+/**
+ * @deprecated ARCHIVED / DEAD CODE
+ * Do not import, pattern-match on, or reference this code in new work.
+ * Kept only as reference for browser SQLite decryption and cookie extraction logic.
+ */
+
 import { createDecipheriv, pbkdf2Sync } from "node:crypto";
 
 const PBKDF2_SALT = "saltysalt";

@@ -1,3 +1,9 @@
+/**
+ * @deprecated ARCHIVED / DEAD CODE
+ * Do not import, pattern-match on, or reference this code in new work.
+ * Kept only as reference for browser SQLite decryption and cookie extraction logic.
+ */
+
 export const expandHostCandidates = (host: string): string[] => {
   const parts = host.split(".").filter(Boolean);
   if (parts.length <= 1) return [host];

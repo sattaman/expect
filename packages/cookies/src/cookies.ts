@@ -1,229 +1,192 @@
 import path from "node:path";
-import { Effect, Layer, Match, Option, ServiceMap } from "effect";
+import {
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Schema,
+  SchemaGetter,
+  ServiceMap,
+} from "effect";
 import * as FileSystem from "effect/FileSystem";
 import { NodeServices } from "@effect/platform-node";
-import getDefaultBrowser from "default-browser";
-import {
-  configByBundleId,
-  configByDesktopFile,
-  configByDisplayName,
-  CHROMIUM_CONFIGS,
-} from "./browser-config.js";
-import { BrowserDetector, type DetectBrowserProfilesOptions } from "./browser-detector.js";
-import { parseBinaryCookies } from "./utils/binary-cookies.js";
 import { CdpClient } from "./cdp-client.js";
-import { ChromiumExtractor } from "./chromium-extractor.js";
-import { FirefoxExtractor } from "./firefox-extractor.js";
-import { SafariExtractor } from "./safari-extractor.js";
-import { CookieDatabaseNotFoundError, CookieReadError } from "./errors.js";
 import { SqliteClient } from "./sqlite-client.js";
-import { dedupeCookies, originsToHosts, stripLeadingDot } from "./utils/host-matching.js";
-import { normalizeSameSite, parseFirefoxExpiry } from "./utils/normalize.js";
-import { sqliteBool, stringField } from "./utils/sql-helpers.js";
-import type {
-  Browser,
-  BrowserProfile,
-  ChromiumBrowser,
-  Cookie,
-  ExtractOptions,
-  ExtractProfileOptions,
-} from "./types.js";
+import {
+  ExtractionError,
+  RequiresFullDiskAccess,
+  UnknownError,
+} from "./errors.js";
+import { parseBinaryCookies } from "./utils/binary-cookies.js";
+import { SameSitePolicy, Cookie, type Browser } from "./types.js";
 
-const DEFAULT_BROWSERS: Browser[] = ["chrome", "brave", "edge", "arc", "firefox", "safari"];
+const SAME_SITE_NONE = 0;
+const SAME_SITE_LAX = 1;
+const SAME_SITE_STRICT = 2;
+const MS_PER_SECOND = 1000;
 
-const SUPPORTED_BROWSER_KEYS: Browser[] = [
-  ...CHROMIUM_CONFIGS.map((config) => config.key),
-  "firefox",
-  "safari",
-];
+const SqliteBool = Schema.Union([Schema.Number, Schema.BigInt]).pipe(
+  Schema.decodeTo(Schema.Boolean, {
+    decode: SchemaGetter.transform((value) => Number(value) !== 0),
+    encode: SchemaGetter.transform((value) => (value ? 1 : 0)),
+  })
+);
 
-const isChromiumBrowser = (browser: Browser): browser is ChromiumBrowser =>
-  CHROMIUM_CONFIGS.some((config) => config.key === browser);
+const FirefoxExpiry = Schema.Union([
+  Schema.Number,
+  Schema.BigInt,
+  Schema.String,
+]).pipe(
+  Schema.decodeTo(Schema.optional(Schema.Number), {
+    decode: SchemaGetter.transform((value) => {
+      const milliseconds = Number(value);
+      if (Number.isNaN(milliseconds) || milliseconds <= 0) return undefined;
+      return Math.floor(milliseconds / MS_PER_SECOND);
+    }),
+    encode: SchemaGetter.transform((value) => (value ?? 0) * MS_PER_SECOND),
+  })
+);
+
+const FirefoxSameSite = Schema.Union([
+  Schema.Number,
+  Schema.BigInt,
+  Schema.String,
+]).pipe(
+  Schema.decodeTo(Schema.optional(SameSitePolicy), {
+    decode: SchemaGetter.transform((value) => {
+      const numeric = Number(value);
+      if (numeric === SAME_SITE_STRICT) return "Strict" as const;
+      if (numeric === SAME_SITE_LAX) return "Lax" as const;
+      if (numeric === SAME_SITE_NONE) return "None" as const;
+      return undefined;
+    }),
+    encode: SchemaGetter.transform((value) => {
+      if (value === "Strict") return SAME_SITE_STRICT;
+      if (value === "Lax") return SAME_SITE_LAX;
+      return SAME_SITE_NONE;
+    }),
+  })
+);
+
+const FirefoxCookieRow = Schema.Struct({
+  name: Schema.String,
+  value: Schema.String,
+  host: Schema.String,
+  path: Schema.String,
+  expiry: FirefoxExpiry,
+  isSecure: SqliteBool,
+  isHttpOnly: SqliteBool,
+  sameSite: FirefoxSameSite,
+});
+
+const firefoxRowToCookie = (row: typeof FirefoxCookieRow.Type) =>
+  Cookie.make({
+    name: row.name,
+    value: row.value,
+    domain: row.host,
+    path: row.path || "/",
+    expires: row.expiry,
+    secure: row.isSecure,
+    httpOnly: row.isHttpOnly,
+    sameSite: row.sameSite,
+  });
 
 export class Cookies extends ServiceMap.Service<Cookies>()("@cookies/Cookies", {
   make: Effect.gen(function* () {
-    const chromiumExtractor = yield* ChromiumExtractor;
-    const firefoxExtractor = yield* FirefoxExtractor;
-    const safariExtractor = yield* SafariExtractor;
     const cdpClient = yield* CdpClient;
-    const browserDetector = yield* BrowserDetector;
     const sqliteClient = yield* SqliteClient;
-    const fileSystem = yield* FileSystem.FileSystem;
+    const fs = yield* FileSystem.FileSystem;
 
-    const extract = Effect.fn("Cookies.extract")(function* (options: ExtractOptions) {
-      yield* Effect.annotateCurrentSpan({ url: options.url });
-      const browsers = options.browsers ?? DEFAULT_BROWSERS;
-      const hosts = originsToHosts([options.url]);
-
-      const extractBrowser = (browser: Browser) =>
-        Effect.gen(function* () {
-          if (isChromiumBrowser(browser)) {
-            return yield* chromiumExtractor.extract(browser, hosts, {
-              names: options.names,
-              includeExpired: options.includeExpired,
-            });
-          }
-          if (browser === "firefox") {
-            return yield* firefoxExtractor.extract(hosts, {
-              names: options.names,
-              includeExpired: options.includeExpired,
-            });
-          }
-          if (browser === "safari") {
-            return yield* safariExtractor.extract(hosts, {
-              names: options.names,
-              includeExpired: options.includeExpired,
-            });
-          }
-          return [] as Cookie[];
-        }).pipe(
+    const extractChromium = (
+      browser: Extract<Browser, { _tag: "ChromiumBrowser" }>,
+    ) =>
+      cdpClient
+        .extractCookies({
+          key: browser.key,
+          profilePath: browser.profilePath,
+          executablePath: browser.executablePath,
+        })
+        .pipe(
           Effect.catchTags({
-            CookieDatabaseNotFoundError: () => Effect.succeed([] as Cookie[]),
-            CookieDatabaseCopyError: () => Effect.succeed([] as Cookie[]),
-            CookieDecryptionKeyError: () => Effect.succeed([] as Cookie[]),
-            CookieReadError: () => Effect.succeed([] as Cookie[]),
-            UnsupportedPlatformError: () => Effect.succeed([] as Cookie[]),
-            BinaryParseError: () => Effect.succeed([] as Cookie[]),
+            TimeoutError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+            SchemaError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+            SocketError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+            HttpClientError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+            PlatformError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
           }),
         );
 
-      const results = yield* Effect.forEach(browsers, extractBrowser, {
-        concurrency: "unbounded",
-      });
-
-      return dedupeCookies(results.flat());
-    });
-
-    const extractProfile = Effect.fn("Cookies.extractProfile")(function* (
-      options: ExtractProfileOptions,
-    ) {
-      yield* Effect.annotateCurrentSpan({ profile: options.profile.profileName });
-      const browserKey = configByDisplayName(options.profile.browser.name)?.key;
-
-      return yield* Match.value(browserKey).pipe(
-        Match.when("firefox", () => extractFirefoxProfileCookies(options.profile)),
-        Match.when("safari", () => extractSafariProfileCookies(options.profile)),
-        Match.orElse(() => cdpClient.extractFromProfile(options)),
-      );
-    });
-
-    const extractAllProfiles = Effect.fn("Cookies.extractAllProfiles")(function* (
-      profiles: BrowserProfile[],
-    ) {
-      const results = yield* Effect.forEach(profiles, (profile) => extractProfile({ profile }));
-      return results.flat();
-    });
-
-    const detectProfiles = Effect.fn("Cookies.detectProfiles")(function* (
-      options?: DetectBrowserProfilesOptions,
-    ) {
-      return yield* browserDetector.detect(options);
-    });
-
-    const detectDefault = Effect.fn("Cookies.detectDefaultBrowser")(function* () {
-      const result = yield* Effect.tryPromise({
-        try: () => getDefaultBrowser(),
-        catch: (cause) => new CookieReadError({ browser: "unknown", cause: String(cause) }),
-      }).pipe(
-        Effect.catchTag("CookieReadError", (error) =>
-          Effect.logWarning("Failed to detect default browser", { cause: error.cause }).pipe(
-            Effect.map(() => undefined),
-          ),
-        ),
-      );
-      if (!result) return Option.none<Browser>();
-
-      const identifier = result.id;
-      const normalizedId = identifier.toLowerCase();
-      const desktopKey = normalizedId.replace(/\.desktop$/, "");
-
-      const config = configByBundleId(normalizedId) ?? configByDesktopFile(desktopKey);
-      return Option.fromNullOr(config?.key);
-    });
-
-    const extractFirefoxProfileCookies = Effect.fn("Cookies.extractFirefoxProfileCookies")(
-      function* (profile: BrowserProfile) {
-        const cookieDbPath = path.join(profile.profilePath, "cookies.sqlite");
+    const extractFirefox = (
+      browser: Extract<Browser, { _tag: "FirefoxBrowser" }>,
+    ) =>
+      Effect.gen(function* () {
+        const cookieDbPath = path.join(browser.profilePath, "cookies.sqlite");
         const { tempDatabasePath } = yield* sqliteClient.copyToTemp(
           cookieDbPath,
-          "cookies-firefox-profile-",
+          "cookies-firefox-",
           "cookies.sqlite",
           "firefox",
         );
 
-        const sqlQuery =
-          `SELECT name, value, host, path, expiry, isSecure, isHttpOnly, sameSite ` +
-          `FROM moz_cookies ORDER BY expiry DESC`;
+        const rows = yield* sqliteClient.query(
+          tempDatabasePath,
+          `SELECT name, value, host, path, expiry, isSecure, isHttpOnly, sameSite FROM moz_cookies ORDER BY expiry DESC`,
+          "firefox",
+        );
 
-        const cookieRows = yield* sqliteClient.query(tempDatabasePath, sqlQuery, "firefox");
-        const cookies: Cookie[] = [];
-
-        for (const cookieRow of cookieRows) {
-          const cookieName = stringField(cookieRow.name);
-          const cookieValue = stringField(cookieRow.value);
-          const cookieHost = stringField(cookieRow.host);
-          if (!cookieName || cookieValue === undefined || !cookieHost) continue;
-
-          cookies.push({
-            name: cookieName,
-            value: cookieValue,
-            domain: stripLeadingDot(cookieHost),
-            path: stringField(cookieRow.path) || "/",
-            expires: parseFirefoxExpiry(cookieRow.expiry),
-            secure: sqliteBool(cookieRow.isSecure),
-            httpOnly: sqliteBool(cookieRow.isHttpOnly),
-            sameSite: normalizeSameSite(cookieRow.sameSite),
-            browser: "firefox",
-          });
-        }
-
-        return cookies;
-      },
-      Effect.scoped,
-    );
-
-    const extractSafariProfileCookies = Effect.fn("Cookies.extractSafariProfileCookies")(function* (
-      profile: BrowserProfile,
-    ) {
-      const cookieFilePath = path.join(profile.profilePath, "Cookies.binarycookies");
-      const data = yield* fileSystem
-        .readFile(cookieFilePath)
-        .pipe(
-          Effect.catchTag("PlatformError", () =>
-            new CookieDatabaseNotFoundError({ browser: "safari" }).asEffect(),
+        return yield* Effect.forEach(rows, (row) =>
+          Schema.decodeUnknownEffect(FirefoxCookieRow)(row).pipe(
+            Effect.map(firefoxRowToCookie),
           ),
         );
-      const cookies = parseBinaryCookies(Buffer.from(data));
-      return cookies.filter((cookie) => Boolean(cookie.name) && Boolean(cookie.domain));
-    });
+      }).pipe(
+        Effect.scoped,
+        Effect.catchTags({
+          CookieReadError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+          CookieDatabaseCopyError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+          SchemaError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+        }),
+      );
 
-    return {
-      extract,
-      extractProfile,
-      extractAllProfiles,
-      detectProfiles,
-      detectDefaultBrowser: detectDefault,
-      supportedBrowsers: SUPPORTED_BROWSER_KEYS,
-    } as const;
+    const extractSafari = (
+      browser: Extract<Browser, { _tag: "SafariBrowser" }>,
+    ) =>
+      Effect.gen(function* () {
+        if (Option.isNone(browser.cookieFilePath)) {
+          return yield* new ExtractionError({
+            reason: new RequiresFullDiskAccess(),
+          }).asEffect();
+        }
+
+        const data = yield* fs.readFile(browser.cookieFilePath.value);
+        return parseBinaryCookies(Buffer.from(data)).filter(
+          (cookie) => Boolean(cookie.name) && Boolean(cookie.domain),
+        );
+      }).pipe(
+        Effect.catchTags({
+          PlatformError: (cause) => new ExtractionError({ reason: new UnknownError({ cause }) }).asEffect(),
+        }),
+      );
+
+    const extract = (browser: Browser) =>
+      Match.valueTags(browser, {
+        ChromiumBrowser: extractChromium,
+        FirefoxBrowser: extractFirefox,
+        SafariBrowser: extractSafari,
+      });
+
+    return { extract } as const;
   }),
 }) {
-  static layer = Layer.effect(this)(this.make).pipe(
-    Layer.provide(ChromiumExtractor.layer),
-    Layer.provide(FirefoxExtractor.layer),
-    Layer.provide(SafariExtractor.layer),
+  static layer = Layer.effect(this, this.make).pipe(
     Layer.provide(CdpClient.layer),
-    Layer.provide(BrowserDetector.layer),
     Layer.provide(SqliteClient.layer),
-    Layer.provide(NodeServices.layer),
+    Layer.provide(NodeServices.layer)
   );
 
-  static layerTest = Layer.effect(this)(this.make).pipe(
-    Layer.provide(ChromiumExtractor.layer),
-    Layer.provide(FirefoxExtractor.layer),
-    Layer.provide(SafariExtractor.layer),
+  static layerTest = Layer.effect(this, this.make).pipe(
     Layer.provide(CdpClient.layerTest),
-    Layer.provide(BrowserDetector.layer),
     Layer.provide(SqliteClient.layer),
-    Layer.provide(NodeServices.layer),
+    Layer.provide(NodeServices.layer)
   );
 }

@@ -1,19 +1,33 @@
-import { spawn } from "node:child_process";
 import path from "node:path";
-import { Effect, Layer, Schedule, ServiceMap } from "effect";
+import {
+  Effect,
+  Layer,
+  Schedule,
+  Schema,
+  ServiceMap,
+  Array as Arr,
+  Option,
+  Deferred,
+  Duration,
+} from "effect";
 import * as FileSystem from "effect/FileSystem";
-import { NodeServices } from "@effect/platform-node";
-import WebSocket from "ws";
-import { formatError } from "@browser-tester/utils";
-import { configByDisplayName } from "./browser-config.js";
-import { BrowserSpawnError, CdpConnectionError } from "./errors.js";
-import { stripLeadingDot } from "./utils/host-matching.js";
-import { normalizeSameSite } from "./utils/normalize.js";
-import type { BrowserProfile, Cookie, ExtractProfileOptions } from "./types.js";
+import { NodeHttpClient, NodeServices } from "@effect/platform-node";
+import getPort from "get-port";
+import {
+  CpdInvalidResponsePayload,
+  DebuggerUrlNotFoundError,
+  ExtractionError,
+  UnknownError,
+} from "./errors.js";
+import { Cookie } from "./types.js";
+import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
+import { HttpClient } from "effect/unstable/http/HttpClient";
+import { HttpClientResponse } from "effect/unstable/http";
+import { Socket } from "effect/unstable/socket/Socket";
+import * as NodeSocket from "@effect/platform-node/NodeSocket";
 
-const CDP_RETRY_COUNT = 10;
-const CDP_COMMAND_TIMEOUT_MS = 10_000;
-const CDP_LOCAL_PORT = 9222;
+const CDP_RETRY_COUNT = 40;
+const CPD_COOKIE_READ_TIMEOUT: Duration.Input = "10 seconds";
 const HEADLESS_CHROME_ARGS = [
   "--headless=new",
   "--disable-gpu",
@@ -22,254 +36,196 @@ const HEADLESS_CHROME_ARGS = [
   "--remote-debugging-address=127.0.0.1",
 ] as const;
 
-// HACK: explicit return type needed because TypeScript cannot infer recursive function types
-const copyDirectoryRecursive = (
-  fileSystem: FileSystem.FileSystem,
-  source: string,
-  target: string,
-): Effect.Effect<void, unknown> =>
-  Effect.gen(function* () {
-    yield* fileSystem.makeDirectory(target, { recursive: true });
-    const entries = yield* fileSystem.readDirectory(source);
-    yield* Effect.forEach(entries, (entry) => {
-      const sourcePath = path.join(source, entry);
-      const targetPath = path.join(target, entry);
-      return fileSystem
-        .stat(sourcePath)
-        .pipe(
-          Effect.flatMap((stat) =>
-            stat.type === "Directory"
-              ? copyDirectoryRecursive(fileSystem, sourcePath, targetPath)
-              : fileSystem.copyFile(sourcePath, targetPath),
-          ),
+const CdpCookieResponse = Schema.Struct({
+  id: Schema.Number,
+  error: Schema.optionalKey(
+    Schema.Struct({
+      code: Schema.Number,
+      message: Schema.String,
+    })
+  ),
+  result: Schema.optionalKey(
+    Schema.Struct({
+      cookies: Schema.Array(Cookie),
+    })
+  ),
+});
+
+export class CdpClient extends ServiceMap.Service<CdpClient>()(
+  "@cookies/CdpClient",
+  {
+    make: Effect.gen(function* () {
+      const fs = yield* FileSystem.FileSystem;
+      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+      const httpClient = yield* HttpClient;
+
+      const getAllCookies = Effect.fn("CdpClient.getAllCookies")(function* () {
+        const socket = yield* Socket;
+        const write = yield* socket.writer;
+        const cookiesDeferred = yield* Deferred.make<
+          readonly Cookie[],
+          ExtractionError
+        >();
+
+        /** setup handler */
+        yield* socket
+          .runRaw((payload) =>
+            Effect.gen(function* () {
+              const decoded = yield* Schema.decodeEffect(
+                Schema.fromJsonString(CdpCookieResponse)
+              )(payload.toString());
+
+              if (decoded.error) {
+                return yield* Deferred.fail(
+                  cookiesDeferred,
+                  new ExtractionError({
+                    reason: new CpdInvalidResponsePayload({
+                      code: decoded.error.code,
+                      errorMessage: decoded.error.message,
+                    }),
+                  })
+                );
+              }
+
+              if (decoded.result) {
+                yield* Deferred.succeed(
+                  cookiesDeferred,
+                  decoded.result.cookies
+                );
+              }
+            })
+          )
+          .pipe(
+            Effect.tapCause((cause) =>
+              Deferred.fail(
+                cookiesDeferred,
+                new ExtractionError({
+                  reason: new UnknownError({ cause }),
+                })
+              )
+            ),
+            Effect.forkScoped
+          );
+
+        /** send payload */
+        yield* write(
+          JSON.stringify({ id: 1, method: "Network.getAllCookies" })
         );
-    });
-  });
 
-interface CdpTarget {
-  type: string;
-  webSocketDebuggerUrl?: string;
-}
-
-interface CdpRawCookie {
-  domain: string;
-  name: string;
-  value: string;
-  path: string;
-  expires: number;
-  secure: boolean;
-  httpOnly: boolean;
-  sameSite: string;
-}
-
-interface CdpResponse {
-  id: number;
-  error?: { code: number; message: string };
-  result?: { cookies: CdpRawCookie[] };
-}
-
-interface CdpCommand {
-  id: number;
-  method: string;
-  params?: Record<string, unknown>;
-}
-
-const getPageWebSocketUrl = Effect.fn("CdpClient.getPageWebSocketUrl")(function* (port: number) {
-  const listUrl = `http://localhost:${port}/json`;
-  const response = yield* Effect.tryPromise({
-    try: () => fetch(listUrl),
-    catch: (cause) => new CdpConnectionError({ port, cause: formatError(cause) }),
-  });
-  const targets = yield* Effect.tryPromise({
-    try: () => response.json() as Promise<CdpTarget[]>,
-    catch: (cause) => new CdpConnectionError({ port, cause: formatError(cause) }),
-  });
-  const pageTarget = targets.find((target) => target.type === "page");
-  if (!pageTarget?.webSocketDebuggerUrl) {
-    return yield* new CdpConnectionError({ port, cause: "no page target available" }).asEffect();
-  }
-  return pageTarget.webSocketDebuggerUrl;
-});
-
-const sendCdpCommand = Effect.fn("CdpClient.sendCdpCommand")(function* (
-  webSocketUrl: string,
-  command: CdpCommand,
-  port: number,
-) {
-  return yield* Effect.callback<CdpResponse, CdpConnectionError>((resume) => {
-    const socket = new WebSocket(webSocketUrl);
-
-    const timeoutId = setTimeout(() => {
-      socket.close();
-      resume(Effect.fail(new CdpConnectionError({ port, cause: "CDP command timed out" })));
-    }, CDP_COMMAND_TIMEOUT_MS);
-
-    const cleanup = () => {
-      clearTimeout(timeoutId);
-      socket.close();
-    };
-
-    socket.on("open", () => {
-      socket.send(JSON.stringify(command));
-    });
-
-    socket.on("message", (rawMessage: WebSocket.Data) => {
-      try {
-        const parsedResponse = JSON.parse(rawMessage.toString()) as CdpResponse;
-        if (parsedResponse.id !== command.id) return;
-        cleanup();
-        resume(Effect.succeed(parsedResponse));
-      } catch (error) {
-        cleanup();
-        resume(
-          Effect.fail(
-            new CdpConnectionError({ port, cause: `failed to parse: ${formatError(error)}` }),
-          ),
+        return yield* Deferred.await(cookiesDeferred).pipe(
+          Effect.timeout(CPD_COOKIE_READ_TIMEOUT)
         );
-      }
-    });
-
-    socket.on("error", (error: Error) => {
-      cleanup();
-      resume(Effect.fail(new CdpConnectionError({ port, cause: error.message })));
-    });
-
-    return Effect.sync(() => {
-      clearTimeout(timeoutId);
-      socket.close();
-    });
-  });
-});
-
-const toProfileCookie = (rawCookie: CdpRawCookie, profile: BrowserProfile): Cookie => ({
-  name: rawCookie.name,
-  value: rawCookie.value,
-  domain: stripLeadingDot(rawCookie.domain),
-  path: rawCookie.path,
-  expires: rawCookie.expires > 0 ? Math.floor(rawCookie.expires) : undefined,
-  secure: rawCookie.secure,
-  httpOnly: rawCookie.httpOnly,
-  sameSite: normalizeSameSite(rawCookie.sameSite),
-  browser: configByDisplayName(profile.browser.name)?.key ?? "chrome",
-});
-
-export class CdpClient extends ServiceMap.Service<CdpClient>()("@cookies/CdpClient", {
-  make: Effect.gen(function* () {
-    const extractFromProfile = Effect.fn("CdpClient.extractFromProfile")(function* (
-      options: ExtractProfileOptions,
-    ) {
-      const { profile } = options;
-      const port = options.port ?? CDP_LOCAL_PORT;
-      yield* Effect.annotateCurrentSpan({
-        profileName: profile.profileName,
-        browser: profile.browser.name,
       });
 
-      const fileSystem = yield* FileSystem.FileSystem;
+      const extractCookies = Effect.fn("CdpClient.extractCookies")(function* ({
+        key,
+        profilePath,
+        executablePath,
+      }: {
+        key: string;
+        profilePath: string;
+        executablePath: string;
+      }) {
+        const port = yield* Effect.promise(() => getPort());
 
-      const tempUserDataDirPath = yield* fileSystem.makeTempDirectory({ prefix: "cookies-cdp-" });
-      yield* Effect.addFinalizer(() =>
-        fileSystem
-          .remove(tempUserDataDirPath, { recursive: true })
-          .pipe(Effect.catch(() => Effect.void)),
-      );
+        yield* Effect.annotateCurrentSpan({
+          profilePath,
+          executablePath,
+        });
 
-      const profileDirectoryName = path.basename(profile.profilePath);
-      const tempProfilePath = path.join(tempUserDataDirPath, profileDirectoryName);
+        const tempUserDataDirPath = yield* fs.makeTempDirectoryScoped({
+          prefix: "cookies-cdp-",
+        });
 
-      yield* copyDirectoryRecursive(fileSystem, profile.profilePath, tempProfilePath).pipe(
-        Effect.catch((cause) =>
-          new BrowserSpawnError({
-            executablePath: profile.browser.executablePath,
-            cause: `Failed to copy profile: ${String(cause)}`,
-          }).asEffect(),
-        ),
-      );
+        const profileDirectoryName = path.basename(profilePath);
+        const tempProfilePath = path.join(
+          tempUserDataDirPath,
+          profileDirectoryName
+        );
 
-      const localStatePath = path.join(path.dirname(profile.profilePath), "Local State");
-      if (yield* fileSystem.exists(localStatePath)) {
-        yield* fileSystem
-          .copyFile(localStatePath, path.join(tempUserDataDirPath, "Local State"))
-          .pipe(Effect.catch(() => Effect.void));
-      }
+        yield* fs.copy(profilePath, tempProfilePath);
+        const localStatePath = path.join(
+          path.dirname(profilePath),
+          "Local State"
+        );
+        if (yield* fs.exists(localStatePath)) {
+          yield* fs.copyFile(
+            localStatePath,
+            path.join(tempUserDataDirPath, "Local State")
+          );
+        }
 
-      // HACK: ChildProcessSpawner doesn't support detached+unref for headless browser lifecycle
-      yield* Effect.acquireRelease(
-        Effect.try({
-          try: () => {
-            const browserProcess = spawn(
-              profile.browser.executablePath,
-              [
-                `--remote-debugging-port=${port}`,
-                `--user-data-dir=${tempUserDataDirPath}`,
-                `--profile-directory=${profileDirectoryName}`,
-                ...HEADLESS_CHROME_ARGS,
-              ],
-              { stdio: "ignore", detached: true },
-            );
-            browserProcess.unref();
-            return browserProcess;
-          },
-          catch: (cause) =>
-            new BrowserSpawnError({
-              executablePath: profile.browser.executablePath,
-              cause: formatError(cause),
-            }),
-        }),
-        (browserProcess) =>
-          Effect.sync(() => {
-            try {
-              browserProcess.kill();
-            } catch {
-              // HACK: process may have already exited
-            }
-          }),
-      );
+        yield* fs.writeFile(
+          path.join(tempUserDataDirPath, "First Run"),
+          new Uint8Array(0)
+        );
 
-      const webSocketUrl = yield* getPageWebSocketUrl(port).pipe(
-        Effect.retry(
-          Schedule.exponential("500 millis").pipe(
-            Schedule.compose(Schedule.recurs(CDP_RETRY_COUNT)),
-          ),
-        ),
-      );
+        const chromeArgs = [
+          `--remote-debugging-port=${port}`,
+          ...(key === "dia" ? [] : [`--user-data-dir=${tempUserDataDirPath}`]),
+          `--profile-directory=${profileDirectoryName}`,
+          ...HEADLESS_CHROME_ARGS,
+        ];
 
-      const response = yield* sendCdpCommand(
-        webSocketUrl,
-        { id: 1, method: "Network.getAllCookies" },
-        port,
-      ).pipe(
-        Effect.retry(
-          Schedule.spaced("1 second").pipe(Schedule.compose(Schedule.recurs(CDP_RETRY_COUNT))),
-        ),
-      );
+        yield* ChildProcess.make(executablePath, chromeArgs, {
+          stdin: "ignore",
+        }).pipe(spawner.spawn, Effect.forkScoped);
 
-      if (response.error) {
-        return yield* new CdpConnectionError({
-          port,
-          cause: `${response.error.message} (code ${response.error.code})`,
-        }).asEffect();
-      }
+        const debuggerUrl = yield* httpClient
+          .get(`http://localhost:${port}/json`)
+          .pipe(
+            Effect.flatMap(
+              HttpClientResponse.schemaBodyJson(
+                Schema.Array(
+                  Schema.Struct({
+                    type: Schema.String,
+                    webSocketDebuggerUrl: Schema.optionalKey(Schema.String),
+                  })
+                )
+              )
+            ),
+            Effect.map(Arr.findFirst((target) => target.type === "page")),
+            Effect.map(
+              Option.flatMap((target) =>
+                Option.fromNullishOr(target.webSocketDebuggerUrl)
+              )
+            ),
+            Effect.flatMap((debuggerUrlOption) => debuggerUrlOption.asEffect()),
+            Effect.catchTag("NoSuchElementError", () =>
+              new ExtractionError({
+                reason: new DebuggerUrlNotFoundError(),
+              }).asEffect()
+            ),
+            Effect.retry({
+              times: CDP_RETRY_COUNT,
+              schedule: Schedule.exponential("200 millis"),
+            })
+          );
 
-      const rawCookies = response.result?.cookies ?? [];
-      yield* Effect.logInfo("CDP cookies extracted", {
-        profile: profile.profileName,
-        count: rawCookies.length,
-      });
+        const cookies = yield* getAllCookies().pipe(
+          Effect.provide(NodeSocket.layerWebSocket(debuggerUrl), {
+            local: true,
+          })
+        );
+        yield* Effect.logInfo("CDP cookies extracted", {
+          profile: profilePath,
+          count: cookies.length,
+        });
+        return cookies;
+      },
+      Effect.scoped);
 
-      return rawCookies.map((raw) => toProfileCookie(raw, profile));
-    }, Effect.scoped);
-
-    return { extractFromProfile } as const;
-  }),
-}) {
-  static layer = Layer.effect(this)(this.make).pipe(Layer.provide(NodeServices.layer));
-
-  static layerTest = Layer.effect(this)(
-    Effect.gen(function* () {
-      return {
-        extractFromProfile: () => Effect.succeed([] as Cookie[]),
-      } as const;
+      return { extractCookies } as const;
     }),
+  }
+) {
+  static layer = Layer.effect(this)(this.make).pipe(
+    Layer.provide(NodeServices.layer),
+    /** @note(rasmus): unidici is more performant than fetch API on Node.js */
+    Layer.provide(NodeHttpClient.layerUndici)
   );
+
+  static layerTest = Layer.mock(this)({
+    extractCookies: () => Effect.succeed([] as Cookie[]),
+  });
 }
