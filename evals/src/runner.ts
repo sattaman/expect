@@ -1,6 +1,8 @@
 import { spawn, execSync, type ChildProcess } from "node:child_process";
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { resolve, dirname } from "node:path";
+import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { resolve, dirname, join } from "node:path";
+import { tmpdir } from "node:os";
+import { randomBytes } from "node:crypto";
 import type { Mutation, EvalResult } from "./types.ts";
 import {
   MUTATION_TIMEOUT_MS,
@@ -23,14 +25,51 @@ const parseStatus = (stdout: string): "passed" | "failed" | "error" => {
 };
 
 const ensureCleanWorkingTree = () => {
-  const status = execSync("git status --porcelain", { cwd: repoRoot, encoding: "utf-8" }).trim();
+  const status = execSync("git status --porcelain", {
+    cwd: repoRoot,
+    encoding: "utf-8",
+  }).trim();
   if (status.length > 0) {
     throw new Error(`Git working tree is dirty. Clean up before running evals:\n${status}`);
   }
 };
 
-const applyMutation = (mutation: Mutation) => {
-  const absolutePath = resolve(repoRoot, mutation.filePath);
+interface WorktreeSlot {
+  worktreePath: string;
+  port: number;
+  viteProcess: ChildProcess;
+}
+
+const createWorktree = (slotIndex: number): string => {
+  const randomSuffix = randomBytes(4).toString("hex");
+  const worktreePath = join(tmpdir(), `testie-eval-${slotIndex}-${randomSuffix}`);
+  execSync(`git worktree add --detach "${worktreePath}" HEAD`, {
+    cwd: repoRoot,
+    stdio: "pipe",
+  });
+  return worktreePath;
+};
+
+const removeWorktree = (worktreePath: string) => {
+  try {
+    execSync(`git worktree remove --force "${worktreePath}"`, {
+      cwd: repoRoot,
+      stdio: "pipe",
+    });
+  } catch {}
+};
+
+const installDeps = (worktreePath: string) => {
+  execSync("pnpm install --prefer-offline --frozen-lockfile", {
+    cwd: worktreePath,
+    stdio: "pipe",
+    env: { ...process.env, FORCE_COLOR: "0" },
+    timeout: 60_000,
+  });
+};
+
+const applyMutationAt = (rootPath: string, mutation: Mutation) => {
+  const absolutePath = resolve(rootPath, mutation.filePath);
   const content = readFileSync(absolutePath, "utf-8");
   if (!content.includes(mutation.search)) {
     throw new Error(
@@ -41,13 +80,13 @@ const applyMutation = (mutation: Mutation) => {
   writeFileSync(absolutePath, mutatedContent, "utf-8");
 };
 
-const revertMutation = (mutation: Mutation) => {
-  const absolutePath = resolve(repoRoot, mutation.filePath);
-  execSync(`git checkout -- "${absolutePath}"`, { cwd: repoRoot });
+const revertMutationAt = (rootPath: string, mutation: Mutation) => {
+  const absolutePath = resolve(rootPath, mutation.filePath);
+  execSync(`git checkout -- "${absolutePath}"`, { cwd: rootPath });
 };
 
-const startViteDevServer = (port: number): ChildProcess => {
-  const appDirectory = resolve(repoRoot, "evals/app");
+const startViteAt = (rootPath: string, port: number): ChildProcess => {
+  const appDirectory = resolve(rootPath, "evals/app");
   const viteProcess = spawn("npx", ["vite", "--port", String(port), "--strictPort"], {
     cwd: appDirectory,
     stdio: ["ignore", "pipe", "pipe"],
@@ -69,7 +108,8 @@ const waitForViteReady = async (port: number) => {
   throw new Error(`Vite dev server did not start within ${VITE_STARTUP_TIMEOUT_MS}ms`);
 };
 
-const runTestie = (
+const runTestieAt = (
+  rootPath: string,
   port: number,
   timeoutMs: number,
 ): Promise<{ stdout: string; exitCode: number }> =>
@@ -78,7 +118,7 @@ const runTestie = (
       "npx",
       ["testie", "unstaged", "-y", "--base-url", `http://localhost:${port}`],
       {
-        cwd: repoRoot,
+        cwd: rootPath,
         stdio: ["ignore", "pipe", "pipe"],
         env: { ...process.env, CI: "true", FORCE_COLOR: "0" },
       },
@@ -104,7 +144,8 @@ const runTestie = (
     });
   });
 
-const runSingleMutation = async (
+const executeMutation = async (
+  rootPath: string,
   mutation: Mutation,
   port: number,
   timeoutMs: number,
@@ -113,10 +154,10 @@ const runSingleMutation = async (
   const startTime = Date.now();
 
   try {
-    applyMutation(mutation);
+    applyMutationAt(rootPath, mutation);
     await sleep(HMR_WAIT_MS);
 
-    const { stdout } = await runTestie(port, timeoutMs);
+    const { stdout } = await runTestieAt(rootPath, port, timeoutMs);
     const actualStatus = parseStatus(stdout);
     const durationMs = Date.now() - startTime;
 
@@ -146,26 +187,25 @@ const runSingleMutation = async (
       error: error instanceof Error ? error.message : String(error),
     };
   } finally {
-    revertMutation(mutation);
+    revertMutationAt(rootPath, mutation);
     await sleep(HMR_REVERT_WAIT_MS);
   }
 };
 
-interface RunOptions {
+export interface RunOptions {
   mutations: Mutation[];
   port: number;
+  concurrency: number;
   timeoutMs: number;
   verbose: boolean;
   jsonOutput: boolean;
 }
 
-export const runEvals = async (options: RunOptions): Promise<EvalResult[]> => {
-  const { mutations, port, timeoutMs, verbose, jsonOutput } = options;
-
-  ensureCleanWorkingTree();
+const runSequential = async (options: RunOptions): Promise<EvalResult[]> => {
+  const { mutations, port, timeoutMs, verbose } = options;
 
   console.log(`Starting Vite dev server on port ${port}...`);
-  const viteProcess = startViteDevServer(port);
+  const viteProcess = startViteAt(repoRoot, port);
 
   try {
     await waitForViteReady(port);
@@ -176,7 +216,7 @@ export const runEvals = async (options: RunOptions): Promise<EvalResult[]> => {
       const index = mutations.indexOf(mutation) + 1;
       process.stdout.write(`[${index}/${mutations.length}] ${mutation.id} ... `);
 
-      const result = await runSingleMutation(mutation, port, timeoutMs, verbose);
+      const result = await executeMutation(repoRoot, mutation, port, timeoutMs, verbose);
       results.push(result);
 
       const icon = result.correct ? "OK" : "!!";
@@ -184,17 +224,93 @@ export const runEvals = async (options: RunOptions): Promise<EvalResult[]> => {
       console.log(`[${icon}] ${result.actualStatus} (${durationSeconds}s)`);
     }
 
-    if (jsonOutput) {
-      const resultsDirectory = resolve(repoRoot, "evals/results");
-      mkdirSync(resultsDirectory, { recursive: true });
-      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-      const outputPath = resolve(resultsDirectory, `${timestamp}.json`);
-      writeFileSync(outputPath, JSON.stringify(results, null, 2), "utf-8");
-      console.log(`\nResults written to ${outputPath}`);
-    }
-
     return results;
   } finally {
     viteProcess.kill("SIGTERM");
   }
+};
+
+const runParallel = async (options: RunOptions): Promise<EvalResult[]> => {
+  const { mutations, port, concurrency, timeoutMs, verbose } = options;
+  const slotCount = Math.min(concurrency, mutations.length);
+
+  console.log(`Setting up ${slotCount} worktree slots for parallel execution...`);
+
+  const slots: WorktreeSlot[] = [];
+  try {
+    for (let slotIndex = 0; slotIndex < slotCount; slotIndex++) {
+      const slotPort = port + slotIndex;
+      process.stdout.write(`  Slot ${slotIndex}: creating worktree... `);
+      const worktreePath = createWorktree(slotIndex);
+      process.stdout.write("installing deps... ");
+      installDeps(worktreePath);
+      process.stdout.write(`starting Vite on :${slotPort}... `);
+      const viteProcess = startViteAt(worktreePath, slotPort);
+      await waitForViteReady(slotPort);
+      console.log("ready");
+      slots.push({ worktreePath, port: slotPort, viteProcess });
+    }
+
+    console.log(
+      `\nAll slots ready. Running ${mutations.length} mutations with concurrency ${slotCount}...\n`,
+    );
+
+    const results: EvalResult[] = new Array(mutations.length);
+    const slotAvailable = slots.map(() => Promise.resolve());
+    let completedCount = 0;
+
+    const runWithSlot = async (mutation: Mutation, mutationIndex: number, slotIndex: number) => {
+      const slot = slots[slotIndex];
+      const result = await executeMutation(
+        slot.worktreePath,
+        mutation,
+        slot.port,
+        timeoutMs,
+        verbose,
+      );
+      results[mutationIndex] = result;
+      completedCount++;
+
+      const icon = result.correct ? "OK" : "!!";
+      const durationSeconds = (result.durationMs / 1000).toFixed(0);
+      console.log(
+        `[${completedCount}/${mutations.length}] ${mutation.id} [${icon}] ${result.actualStatus} (${durationSeconds}s)`,
+      );
+    };
+
+    for (let mutationIndex = 0; mutationIndex < mutations.length; mutationIndex++) {
+      const slotIndex = mutationIndex % slotCount;
+      const mutation = mutations[mutationIndex];
+
+      slotAvailable[slotIndex] = slotAvailable[slotIndex].then(() =>
+        runWithSlot(mutation, mutationIndex, slotIndex),
+      );
+    }
+
+    await Promise.all(slotAvailable);
+    return results;
+  } finally {
+    for (const slot of slots) {
+      slot.viteProcess.kill("SIGTERM");
+      removeWorktree(slot.worktreePath);
+    }
+  }
+};
+
+export const runEvals = async (options: RunOptions): Promise<EvalResult[]> => {
+  ensureCleanWorkingTree();
+
+  const results =
+    options.concurrency <= 1 ? await runSequential(options) : await runParallel(options);
+
+  if (options.jsonOutput) {
+    const resultsDirectory = resolve(repoRoot, "evals/results");
+    mkdirSync(resultsDirectory, { recursive: true });
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    const outputPath = resolve(resultsDirectory, `${timestamp}.json`);
+    writeFileSync(outputPath, JSON.stringify(results, null, 2), "utf-8");
+    console.log(`\nResults written to ${outputPath}`);
+  }
+
+  return results;
 };
