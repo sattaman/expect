@@ -246,39 +246,42 @@ export const TestingScreen = () => {
       </Box>
 
       <Box flexDirection="column" marginTop={1}>
-        {steps.map((step) => (
-          <Box key={step.stepId} flexDirection="column">
-            {step.status === "passed" ? (
-              <Text color={COLORS.GREEN}>
-                {`  ${figures.tick} ${step.stepId} ${cliTruncate(step.label, TESTING_TOOL_TEXT_CHAR_LIMIT)}`}
-              </Text>
-            ) : step.status === "failed" ? (
-              <Text color={COLORS.RED}>
-                {`  ${figures.cross} ${step.stepId} ${cliTruncate(step.label, TESTING_TOOL_TEXT_CHAR_LIMIT)}`}
-              </Text>
-            ) : step.status === "active" ? (
-              <>
-                <Box>
-                  <Text>{"  "}</Text>
-                  <Spinner />
-                  <Text> </Text>
-                  <TextShimmer
-                    text={`${step.stepId} ${step.label}${stepElapsedLabel ? ` ${stepElapsedLabel}` : ""}`}
-                    baseColor={COLORS.SELECTION}
-                    highlightColor={COLORS.PRIMARY}
-                  />
-                </Box>
-                {currentToolCallText ? (
-                  <Text color={COLORS.DIM}>
-                    {`    ${figures.pointerSmall} ${currentToolCallText}`}
-                  </Text>
-                ) : null}
-              </>
-            ) : (
-              <Text color={COLORS.DIM}>{`  ○ ${step.stepId} ${step.label}`}</Text>
-            )}
-          </Box>
-        ))}
+        {steps.map((step, stepIndex) => {
+          const stepPrefix = `Step ${stepIndex + 1}`;
+          return (
+            <Box key={step.stepId} flexDirection="column">
+              {step.status === "passed" ? (
+                <Text color={COLORS.GREEN}>
+                  {`  ${figures.tick} ${stepPrefix} ${cliTruncate(step.label, TESTING_TOOL_TEXT_CHAR_LIMIT)}`}
+                </Text>
+              ) : step.status === "failed" ? (
+                <Text color={COLORS.RED}>
+                  {`  ${figures.cross} ${stepPrefix} ${cliTruncate(step.label, TESTING_TOOL_TEXT_CHAR_LIMIT)}`}
+                </Text>
+              ) : step.status === "active" ? (
+                <>
+                  <Box>
+                    <Text>{"  "}</Text>
+                    <Spinner />
+                    <Text> </Text>
+                    <TextShimmer
+                      text={`${stepPrefix} ${step.label}${stepElapsedLabel ? ` ${stepElapsedLabel}` : ""}`}
+                      baseColor={COLORS.SELECTION}
+                      highlightColor={COLORS.PRIMARY}
+                    />
+                  </Box>
+                  {currentToolCallText ? (
+                    <Text color={COLORS.DIM}>
+                      {`    ${figures.pointerSmall} ${currentToolCallText}`}
+                    </Text>
+                  ) : null}
+                </>
+              ) : (
+                <Text color={COLORS.DIM}>{`  ○ ${stepPrefix} ${step.label}`}</Text>
+              )}
+            </Box>
+          );
+        })}
       </Box>
 
       {showCancelConfirmation ? (
