@@ -22,6 +22,8 @@ const PLANNING_STAGES = [
   { after: 40000, label: "Finalizing" },
 ] as const;
 
+const STAGE_LABEL_WIDTH = Math.max(...PLANNING_STAGES.map((stage) => stage.label.length));
+
 const TIPS = [
   "Use @ in the input to target a specific PR, branch, or commit",
   "Press shift+tab to toggle auto-run after planning",
@@ -34,8 +36,6 @@ const TIPS = [
   "Cookie sync lets the browser inherit your authenticated sessions",
   "Press ctrl+p to quickly switch to a different PR",
 ] as const;
-
-const TIP_CYCLE_MS = 6000;
 
 const getStageLabel = (elapsed: number): (typeof PLANNING_STAGES)[number]["label"] => {
   let label: (typeof PLANNING_STAGES)[number]["label"] = PLANNING_STAGES[0].label;
@@ -59,7 +59,7 @@ export const PlanningScreen = () => {
   const selectedContext = useAppStore((state) => state.selectedContext);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
-  const [tipIndex, setTipIndex] = useState(() => Math.floor(Math.random() * TIPS.length));
+  const [tipIndex] = useState(() => Math.floor(Math.random() * TIPS.length));
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -68,15 +68,9 @@ export const PlanningScreen = () => {
     return () => clearInterval(interval);
   }, [startTime]);
 
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setTipIndex((previous) => (previous + 1) % TIPS.length);
-    }, TIP_CYCLE_MS);
-    return () => clearInterval(interval);
-  }, []);
-
   const stageLabel = getStageLabel(elapsed);
   const stageIndex = getStageIndex(elapsed);
+
   return (
     <Box flexDirection="column" width="100%" paddingY={1}>
       {selectedContext ? (
@@ -91,7 +85,7 @@ export const PlanningScreen = () => {
       <Box marginTop={1} paddingX={1}>
         <Spinner />
         <Text color={COLORS.DIM}>
-          {` ${stageLabel}${figures.ellipsis} `}
+          {` ${stageLabel.padEnd(STAGE_LABEL_WIDTH)}${figures.ellipsis} `}
           <Text color={COLORS.BORDER}>{formatElapsedTime(elapsed)}</Text>
           {"  "}
           {PLANNING_STAGES.map((_, index) => (
