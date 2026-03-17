@@ -4,22 +4,38 @@ import figures from "figures";
 import { Spinner } from "../ui/spinner.js";
 import { useColors } from "../theme-context.js";
 import { RuledBox } from "../ui/ruled-box.js";
+import { DotField } from "../ui/dot-field.js";
 import { useAppStore } from "../../store.js";
 import { formatElapsedTime } from "../../utils/format-elapsed-time.js";
 import { TESTING_TIMER_UPDATE_INTERVAL_MS } from "../../constants.js";
 
 const PLANNING_STAGES = [
   { after: 0, label: "Analyzing changes" },
-  { after: 1200, label: "Reading diff" },
-  { after: 2400, label: "Identifying test surfaces" },
-  { after: 3600, label: "Mapping component boundaries" },
-  { after: 4800, label: "Building browser steps" },
-  { after: 6000, label: "Sequencing navigation flow" },
-  { after: 7200, label: "Defining expected outcomes" },
-  { after: 8400, label: "Checking assertions" },
-  { after: 9600, label: "Validating plan" },
-  { after: 11000, label: "Finalizing" },
+  { after: 1500, label: "Reading diff" },
+  { after: 3500, label: "Identifying test surfaces" },
+  { after: 6000, label: "Mapping component boundaries" },
+  { after: 9000, label: "Building browser steps" },
+  { after: 13000, label: "Sequencing navigation flow" },
+  { after: 18000, label: "Defining expected outcomes" },
+  { after: 24000, label: "Checking assertions" },
+  { after: 31000, label: "Validating plan" },
+  { after: 40000, label: "Finalizing" },
 ] as const;
+
+const TIPS = [
+  "Use @ in the input to target a specific PR, branch, or commit",
+  "Press shift+tab to toggle auto-run after planning",
+  "You can edit step instructions during plan review with e",
+  "Save plans with s to reuse them later with ctrl+r",
+  "Use tab to accept a suggested test prompt",
+  "Arrow keys cycle through test suggestions on the home screen",
+  "Plans adapt to your diff — smaller changes mean faster plans",
+  "You can switch context to a different branch during plan review",
+  "Cookie sync lets the browser inherit your authenticated sessions",
+  "Press ctrl+p to quickly switch to a different PR",
+] as const;
+
+const TIP_CYCLE_MS = 6000;
 
 const getStageLabel = (elapsed: number): (typeof PLANNING_STAGES)[number]["label"] => {
   let label: (typeof PLANNING_STAGES)[number]["label"] = PLANNING_STAGES[0].label;
@@ -29,12 +45,21 @@ const getStageLabel = (elapsed: number): (typeof PLANNING_STAGES)[number]["label
   return label;
 };
 
+const getStageIndex = (elapsed: number): number => {
+  let index = 0;
+  for (let stageIndex = 0; stageIndex < PLANNING_STAGES.length; stageIndex++) {
+    if (elapsed >= PLANNING_STAGES[stageIndex].after) index = stageIndex;
+  }
+  return index;
+};
+
 export const PlanningScreen = () => {
   const COLORS = useColors();
   const flowInstruction = useAppStore((state) => state.flowInstruction);
   const selectedContext = useAppStore((state) => state.selectedContext);
   const [startTime] = useState(() => Date.now());
   const [elapsed, setElapsed] = useState(0);
+  const [tipIndex, setTipIndex] = useState(() => Math.floor(Math.random() * TIPS.length));
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -43,8 +68,15 @@ export const PlanningScreen = () => {
     return () => clearInterval(interval);
   }, [startTime]);
 
-  const stageLabel = getStageLabel(elapsed);
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setTipIndex((previous) => (previous + 1) % TIPS.length);
+    }, TIP_CYCLE_MS);
+    return () => clearInterval(interval);
+  }, []);
 
+  const stageLabel = getStageLabel(elapsed);
+  const stageIndex = getStageIndex(elapsed);
   return (
     <Box flexDirection="column" width="100%" paddingY={1}>
       {selectedContext ? (
@@ -61,6 +93,20 @@ export const PlanningScreen = () => {
         <Text color={COLORS.DIM}>
           {` ${stageLabel}${figures.ellipsis} `}
           <Text color={COLORS.BORDER}>{formatElapsedTime(elapsed)}</Text>
+          {"  "}
+          {PLANNING_STAGES.map((_, index) => (
+            <Text key={index} color={index <= stageIndex ? COLORS.DIM : COLORS.BORDER}>
+              {index <= stageIndex ? "█" : "░"}
+            </Text>
+          ))}
+        </Text>
+      </Box>
+
+      <DotField rows={2} dimColor="#0a0a0a" brightColor={COLORS.BORDER} />
+
+      <Box paddingX={1} marginTop={1}>
+        <Text color={COLORS.BORDER}>
+          {"TIP "}<Text color={COLORS.DIM}>{TIPS[tipIndex]}</Text>
         </Text>
       </Box>
     </Box>
