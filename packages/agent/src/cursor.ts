@@ -119,6 +119,39 @@ const runStream = Effect.fn("CursorAgent.stream")(function* (
             emitToolResultParts(messageContent, controller);
           }
         }
+
+        if (event.type === "tool_call") {
+          const mcpCall = extractMcpToolCall(event);
+          if (mcpCall) {
+            if (event.subtype === "started") {
+              const inputStr = JSON.stringify(mcpCall.args ?? {});
+              controller.enqueue({
+                type: "tool-input-start",
+                id: mcpCall.toolCallId,
+                toolName: mcpCall.qualifiedName,
+                providerExecuted: true,
+              });
+              controller.enqueue({ type: "tool-input-delta", id: mcpCall.toolCallId, delta: inputStr });
+              controller.enqueue({ type: "tool-input-end", id: mcpCall.toolCallId });
+              controller.enqueue({
+                type: "tool-call",
+                toolCallId: mcpCall.toolCallId,
+                toolName: mcpCall.qualifiedName,
+                input: inputStr,
+                providerExecuted: true,
+              });
+            }
+            if (event.subtype === "completed") {
+              controller.enqueue({
+                type: "tool-result",
+                toolCallId: mcpCall.toolCallId,
+                toolName: mcpCall.qualifiedName,
+                result: mcpCall.resultText,
+                isError: mcpCall.isError,
+              });
+            }
+          }
+        }
       }
 
       controller.enqueue({
@@ -159,6 +192,42 @@ export const createCursorModel = (settings: CursorSettings = {}): LanguageModelV
   doGenerate: (options) => Effect.runPromise(runGenerate(options, settings)),
   doStream: (options) => Effect.runPromise(runStream(options, settings)),
 });
+
+interface McpToolCallInfo {
+  toolCallId: string;
+  qualifiedName: string;
+  args: unknown;
+  resultText: string;
+  isError: boolean;
+}
+
+const extractMcpToolCall = (event: Record<string, unknown>): McpToolCallInfo | undefined => {
+  const toolCall = event.tool_call;
+  if (!Predicate.isReadonlyObject(toolCall)) return undefined;
+  const mcpCall = toolCall.mcpToolCall;
+  if (!Predicate.isReadonlyObject(mcpCall)) return undefined;
+  const mcpArgs = mcpCall.args;
+  if (!Predicate.isReadonlyObject(mcpArgs)) return undefined;
+
+  const providerIdentifier = typeof mcpArgs.providerIdentifier === "string" ? mcpArgs.providerIdentifier : "browser";
+  const toolName = typeof mcpArgs.toolName === "string" ? mcpArgs.toolName : "unknown";
+  const toolCallId = typeof mcpArgs.toolCallId === "string" ? mcpArgs.toolCallId : typeof event.call_id === "string" ? event.call_id : `tool_${Date.now()}`;
+  const qualifiedName = `mcp__${providerIdentifier}__${toolName}`;
+
+  const result = Predicate.isReadonlyObject(mcpCall.result) ? mcpCall.result : undefined;
+  const success = result && Predicate.isReadonlyObject(result.success) ? result.success : undefined;
+  const contentArray = success && Array.isArray(success.content) ? success.content : [];
+  const resultText = contentArray
+    .filter(Predicate.isReadonlyObject)
+    .map((item) => {
+      const textObj = item.text;
+      return Predicate.isReadonlyObject(textObj) && typeof textObj.text === "string" ? textObj.text : "";
+    })
+    .join("\n");
+  const isError = success ? success.isError === true : false;
+
+  return { toolCallId, qualifiedName, args: mcpArgs.args, resultText, isError };
+};
 
 const extractMessageContent = (event: Record<string, unknown>): unknown[] | undefined => {
   const message = event.message;

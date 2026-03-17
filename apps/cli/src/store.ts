@@ -18,6 +18,7 @@ import {
 import { getGitState, type GitState } from "./utils/get-git-state.js";
 import type { ContextOption } from "./utils/context-options.js";
 import { CliRuntime } from "./runtime.js";
+import { createDirectRunPlan } from "./utils/create-direct-run-plan.js";
 import {
   listSavedFlows,
   type LoadedSavedFlow,
@@ -45,6 +46,7 @@ interface AppStore {
   flowInstruction: string;
   flowInstructionHistory: string[];
   autoRunAfterPlanning: boolean;
+  skipPlanning: boolean;
   planningProvider: AgentProvider | undefined;
   executionProvider: AgentProvider | undefined;
   planningModel: string | undefined;
@@ -82,6 +84,7 @@ interface AppStore {
   applySavedFlow: (savedFlow: LoadedSavedFlow) => void;
   submitFlowInstruction: (instruction: string) => void;
   toggleAutoRun: () => void;
+  toggleSkipPlanning: () => void;
   toggleAutoSave: () => void;
   completePlanning: (result: {
     target: TestTarget;
@@ -140,6 +143,7 @@ export const useAppStore = create<AppStore>((set) => ({
   flowInstruction: "",
   flowInstructionHistory: [],
   autoRunAfterPlanning: false,
+  skipPlanning: true,
   planningProvider: undefined,
   executionProvider: undefined,
   planningModel: undefined,
@@ -282,16 +286,52 @@ export const useAppStore = create<AppStore>((set) => ({
     }),
 
   submitFlowInstruction: (instruction) =>
-    set((state) => ({
-      ...RESET_PLAN_STATE,
-      flowInstruction: instruction,
-      flowInstructionHistory: rememberFlowInstruction(state.flowInstructionHistory, instruction),
-      planningError: null,
-      planOrigin: "generated",
-      screen: "planning",
-    })),
+    set((state) => {
+      const flowInstructionHistory = rememberFlowInstruction(state.flowInstructionHistory, instruction);
+
+      if (!state.testAction) {
+        return {
+          ...RESET_PLAN_STATE,
+          flowInstruction: instruction,
+          flowInstructionHistory,
+          planningError: null,
+          planOrigin: "generated",
+          screen: "main",
+        };
+      }
+
+      if (state.skipPlanning) {
+        const resolvedTarget = resolveBrowserTarget({
+          action: state.testAction,
+          commit: state.selectedCommit ?? undefined,
+        });
+        const browserEnvironment = getBrowserEnvironment(state.environmentOverrides);
+
+        return {
+          ...RESET_PLAN_STATE,
+          flowInstruction: instruction,
+          flowInstructionHistory,
+          planningError: null,
+          planOrigin: "generated",
+          resolvedTarget,
+          generatedPlan: createDirectRunPlan({ userInstruction: instruction, target: resolvedTarget }),
+          browserEnvironment,
+          screen: "testing",
+        };
+      }
+
+      return {
+        ...RESET_PLAN_STATE,
+        flowInstruction: instruction,
+        flowInstructionHistory,
+        planningError: null,
+        planOrigin: "generated",
+        screen: "planning",
+      };
+    }),
 
   toggleAutoRun: () => set((state) => ({ autoRunAfterPlanning: !state.autoRunAfterPlanning })),
+  toggleSkipPlanning: () => set((state) => ({ skipPlanning: !state.skipPlanning })),
   toggleAutoSave: () => set((state) => ({ autoSaveFlows: !state.autoSaveFlows })),
 
   completePlanning: (result) =>

@@ -21,6 +21,9 @@ import {
 import { CliRuntime } from "./runtime.js";
 import { loadSavedFlowBySlug } from "./utils/flow-storage.js";
 import { setInkInstance } from "./utils/clear-ink-display.js";
+import { createDirectRunPlan } from "./utils/create-direct-run-plan.js";
+
+const DEFAULT_SKIP_PLANNING = true;
 
 const parseAgentProvider = (value: string): AgentProvider => {
   if (value === "claude" || value === "codex" || value === "cursor") {
@@ -39,14 +42,20 @@ const program = new Command()
   .option("-m, --message <instruction>", "natural language instruction for what to test")
   .option("-f, --flow <slug>", "reuse a saved flow by its slug")
   .option("-y, --yes", "skip plan review and run immediately")
-  .option("--planner <provider>", "agent for planning (claude, codex, cursor)", parseAgentProvider)
+  .option(
+    "--planner <provider>",
+    "agent for planning (claude, codex, cursor)",
+    parseAgentProvider,
+    "cursor",
+  )
   .option(
     "--executor <provider>",
     "agent for execution (claude, codex, cursor)",
     parseAgentProvider,
+    "cursor",
   )
-  .option("--planning-model <model>", "specific model for the planning agent")
-  .option("--execution-model <model>", "specific model for the execution agent")
+  .option("--planning-model <model>", "specific model for the planning agent", "composer-1.5")
+  .option("--execution-model <model>", "specific model for the execution agent", "composer-1.5")
   .option("--base-url <url>", "browser base URL (overrides BROWSER_TESTER_BASE_URL)")
   .option("--headed", "run browser visibly instead of headless")
   .option("--cookies", "sync cookies from your browser profile")
@@ -84,7 +93,7 @@ const renderApp = () => {
 
 const resolveInitialScreen = (config: TestRunConfig, hasSavedFlow: boolean): Screen => {
   if (hasSavedFlow) return config.autoRun ? "testing" : "review-plan";
-  if (config.message) return "planning";
+  if (config.message) return DEFAULT_SKIP_PLANNING ? "testing" : "planning";
   return "main";
 };
 
@@ -101,6 +110,15 @@ const seedStoreFromConfig = async (config: TestRunConfig): Promise<void> => {
         ),
       )
     : null;
+  const resolvedTarget = resolveBrowserTarget({
+    action: config.action,
+    commit: resolvedCommit ?? undefined,
+  });
+  const browserEnvironment = getBrowserEnvironment(config.environmentOverrides);
+  const directRunPlan =
+    !savedFlow && config.message && DEFAULT_SKIP_PLANNING
+      ? createDirectRunPlan({ userInstruction: config.message, target: resolvedTarget })
+      : null;
 
   const screen = resolveInitialScreen(config, Boolean(savedFlow));
 
@@ -109,6 +127,7 @@ const seedStoreFromConfig = async (config: TestRunConfig): Promise<void> => {
     testAction: config.action,
     selectedCommit: resolvedCommit,
     autoRunAfterPlanning: config.autoRun ?? false,
+    skipPlanning: DEFAULT_SKIP_PLANNING,
     planningProvider: config.planningProvider,
     executionProvider: config.executionProvider,
     planningModel: config.planningModel,
@@ -117,17 +136,20 @@ const seedStoreFromConfig = async (config: TestRunConfig): Promise<void> => {
     ...(config.message && { flowInstruction: config.message }),
     ...(savedFlow && {
       generatedPlan: savedFlow.plan,
-      resolvedTarget: resolveBrowserTarget({
-        action: config.action,
-        commit: resolvedCommit ?? undefined,
-      }),
+      resolvedTarget,
       browserEnvironment: {
-        ...getBrowserEnvironment(config.environmentOverrides),
+        ...browserEnvironment,
         ...savedFlow.environment,
       },
       planOrigin: "saved" as const,
     }),
-    ...(!savedFlow && config.message && { planOrigin: "generated" as const }),
+    ...(directRunPlan && {
+      generatedPlan: directRunPlan,
+      resolvedTarget,
+      browserEnvironment,
+      planOrigin: "generated" as const,
+    }),
+    ...(!savedFlow && config.message && !directRunPlan && { planOrigin: "generated" as const }),
   });
 };
 
@@ -175,7 +197,7 @@ program
 program.action(async () => {
   const config = resolveTestRunConfig("test-changes", program.opts());
   if (isHeadless()) return autoDetectAndTest(config);
-  if (config.message || config.flowSlug || config.autoRun || config.environmentOverrides) {
+  if (config.message || config.flowSlug || config.autoRun || config.environmentOverrides || config.planningProvider || config.executionProvider || config.planningModel || config.executionModel) {
     await seedStoreFromConfig(config);
   }
   renderApp();

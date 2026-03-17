@@ -62,7 +62,7 @@ const PAUSE_JITTER_MS = 1200;
 
 const TIPS = [
   "Use @ in the input to target a specific PR, branch, or commit",
-  "Press shift+tab to toggle auto-run after planning",
+  "Press shift+tab on the home screen to toggle skipping planning",
   "You can edit step instructions during plan review with e",
   "Save plans with s to reuse them later with ctrl+r",
   "Use tab to accept a suggested test prompt",

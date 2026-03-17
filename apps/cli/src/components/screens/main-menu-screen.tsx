@@ -25,7 +25,7 @@ export const MainMenu = () => {
   const COLORS = useColors();
   const [columns] = useStdoutDimensions();
   const gitState = useAppStore((state) => state.gitState);
-  const toggleAutoRun = useAppStore((state) => state.toggleAutoRun);
+  const toggleSkipPlanning = useAppStore((state) => state.toggleSkipPlanning);
   const submitFlowInstruction = useAppStore((state) => state.submitFlowInstruction);
   const selectAction = useAppStore((state) => state.selectAction);
   const storeSelectContext = useAppStore((state) => state.selectContext);
@@ -261,7 +261,7 @@ export const MainMenu = () => {
         return;
       }
       if (key.tab && key.shift) {
-        toggleAutoRun();
+        toggleSkipPlanning();
         return;
       }
       if (!showSuggestion) return;

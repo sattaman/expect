@@ -16,7 +16,7 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
   const requestPlanApproval = useAppStore((state) => state.requestPlanApproval);
   const approvePlan = useAppStore((state) => state.approvePlan);
   const generatedPlan = useAppStore((state) => state.generatedPlan);
-  const autoRunAfterPlanning = useAppStore((state) => state.autoRunAfterPlanning);
+  const skipPlanning = useAppStore((state) => state.skipPlanning);
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
   const latestRunReport = useAppStore((state) => state.latestRunReport);
   const liveViewUrl = useAppStore((state) => state.liveViewUrl);
@@ -28,8 +28,8 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
       const hints: HintSegment[] = [
         {
           key: "shift+tab",
-          label: `auto-run after planning ${autoRunAfterPlanning ? "on" : "off"}`,
-          color: autoRunAfterPlanning ? COLORS.GREEN : undefined,
+          label: `skip planning ${skipPlanning ? "on" : "off"}`,
+          color: skipPlanning ? COLORS.GREEN : undefined,
         },
       ];
       if (savedFlowSummaries.length > 0) {
