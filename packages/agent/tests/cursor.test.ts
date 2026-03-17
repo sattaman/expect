@@ -179,7 +179,12 @@ describe("createCursorModel", () => {
     it("converts tool_use in assistant message to tool-call with providerExecuted", async () => {
       const { content } = await generateWith([
         sdkAssistant([
-          { type: "tool_use", id: "toolu_abc", name: "browser_open", input: { url: "http://localhost" } },
+          {
+            type: "tool_use",
+            id: "toolu_abc",
+            name: "browser_open",
+            input: { url: "http://localhost" },
+          },
         ]),
       ]);
       expect(content[0]).toMatchObject({
@@ -211,6 +216,10 @@ describe("createCursorModel", () => {
         "reasoning",
         "text",
       ]);
+    });
+
+    it("throws CursorNotSignedInError when cursor-agent produces no output", async () => {
+      await expect(generateWith([])).rejects.toThrow("you may not be signed in to Cursor");
     });
   });
 
@@ -348,6 +357,12 @@ describe("createCursorModel", () => {
       const parts = await streamWith([sdkAssistant([{ type: "text", text: "Hi" }])]);
       const finish = parts.find((part) => part.type === "finish");
       expect(finish).toMatchObject({ type: "finish", finishReason: { unified: "stop" } });
+    });
+
+    it("emits error when cursor-agent is not signed in", async () => {
+      const parts = await streamWith([]);
+      const errorPart = parts.find((part) => part.type === "error");
+      expect(errorPart).toBeDefined();
     });
   });
 });

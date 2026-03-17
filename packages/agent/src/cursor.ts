@@ -10,7 +10,7 @@ import type {
 import { ensureSafeCurrentWorkingDirectory } from "@browser-tester/utils";
 import { Effect, Layer, Predicate, ServiceMap } from "effect";
 import { convertPrompt } from "./convert-prompt.js";
-import { CursorSpawnError } from "./errors.js";
+import { CursorNotSignedInError, CursorSpawnError } from "./errors.js";
 import {
   EMPTY_USAGE,
   PROVIDER_ID,
@@ -58,6 +58,12 @@ const runGenerate = Effect.fn("CursorAgent.generate")(function* (
         cause: String(cause),
       }),
   });
+
+  if (!sessionId && content.length === 0) {
+    return yield* new CursorNotSignedInError({
+      executable: settings.executable ?? "cursor-agent",
+    });
+  }
 
   return {
     content,
@@ -131,7 +137,11 @@ const runStream = Effect.fn("CursorAgent.stream")(function* (
                 toolName: mcpCall.qualifiedName,
                 providerExecuted: true,
               });
-              controller.enqueue({ type: "tool-input-delta", id: mcpCall.toolCallId, delta: inputStr });
+              controller.enqueue({
+                type: "tool-input-delta",
+                id: mcpCall.toolCallId,
+                delta: inputStr,
+              });
               controller.enqueue({ type: "tool-input-end", id: mcpCall.toolCallId });
               controller.enqueue({
                 type: "tool-call",
@@ -154,6 +164,12 @@ const runStream = Effect.fn("CursorAgent.stream")(function* (
         }
       }
 
+      if (!sessionId && blockCounter === 0) {
+        throw new CursorNotSignedInError({
+          executable: settings.executable ?? "cursor-agent",
+        });
+      }
+
       controller.enqueue({
         type: "finish",
         finishReason: STOP_REASON,
@@ -161,11 +177,13 @@ const runStream = Effect.fn("CursorAgent.stream")(function* (
         providerMetadata: sessionId ? { [PROVIDER_ID]: { sessionId } } : undefined,
       });
     },
-    (cause) =>
-      new CursorSpawnError({
+    (cause) => {
+      if (cause instanceof CursorNotSignedInError) return cause;
+      return new CursorSpawnError({
         executable: settings.executable ?? "cursor-agent",
         cause: String(cause),
-      }),
+      });
+    },
   );
 
   return { stream, request: { body: userPrompt } };
@@ -209,9 +227,15 @@ const extractMcpToolCall = (event: Record<string, unknown>): McpToolCallInfo | u
   const mcpArgs = mcpCall.args;
   if (!Predicate.isReadonlyObject(mcpArgs)) return undefined;
 
-  const providerIdentifier = typeof mcpArgs.providerIdentifier === "string" ? mcpArgs.providerIdentifier : "browser";
+  const providerIdentifier =
+    typeof mcpArgs.providerIdentifier === "string" ? mcpArgs.providerIdentifier : "browser";
   const toolName = typeof mcpArgs.toolName === "string" ? mcpArgs.toolName : "unknown";
-  const toolCallId = typeof mcpArgs.toolCallId === "string" ? mcpArgs.toolCallId : typeof event.call_id === "string" ? event.call_id : `tool_${Date.now()}`;
+  const toolCallId =
+    typeof mcpArgs.toolCallId === "string"
+      ? mcpArgs.toolCallId
+      : typeof event.call_id === "string"
+        ? event.call_id
+        : `tool_${Date.now()}`;
   const qualifiedName = `mcp__${providerIdentifier}__${toolName}`;
 
   const result = Predicate.isReadonlyObject(mcpCall.result) ? mcpCall.result : undefined;
@@ -221,7 +245,9 @@ const extractMcpToolCall = (event: Record<string, unknown>): McpToolCallInfo | u
     .filter(Predicate.isReadonlyObject)
     .map((item) => {
       const textObj = item.text;
-      return Predicate.isReadonlyObject(textObj) && typeof textObj.text === "string" ? textObj.text : "";
+      return Predicate.isReadonlyObject(textObj) && typeof textObj.text === "string"
+        ? textObj.text
+        : "";
     })
     .join("\n");
   const isError = success ? success.isError === true : false;

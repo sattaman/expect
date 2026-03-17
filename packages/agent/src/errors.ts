@@ -21,3 +21,12 @@ export class CursorSpawnError extends Schema.ErrorClass<CursorSpawnError>("Curso
 }) {
   message = `Failed to spawn ${this.executable}: ${this.cause}`;
 }
+
+export class CursorNotSignedInError extends Schema.ErrorClass<CursorNotSignedInError>(
+  "CursorNotSignedInError",
+)({
+  _tag: Schema.tag("CursorNotSignedInError"),
+  executable: Schema.String,
+}) {
+  message = `${this.executable} produced no output — you may not be signed in to Cursor`;
+}
