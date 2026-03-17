@@ -13,7 +13,7 @@ import type { AgentProviderSettings } from "./types.js";
 export const createCodexModel = (settings: AgentProviderSettings = {}): LanguageModelV3 => ({
   specificationVersion: "v3",
   provider: PROVIDER_ID,
-  modelId: "codex",
+  modelId: settings.model ?? "codex",
   supportedUrls: {},
 
   async doGenerate(options: LanguageModelV3CallOptions) {
@@ -95,9 +95,13 @@ const prepareRun = (settings: AgentProviderSettings, options: LanguageModelV3Cal
       ? { config: { mcp_servers: JSON.parse(JSON.stringify(settings.mcpServers)) } }
       : undefined,
   );
+  const threadOptions = {
+    workingDirectory: settings.cwd,
+    ...(settings.model ? { model: settings.model } : {}),
+  };
   const thread = settings.sessionId
-    ? codex.resumeThread(settings.sessionId, { workingDirectory: settings.cwd })
-    : codex.startThread({ workingDirectory: settings.cwd });
+    ? codex.resumeThread(settings.sessionId, threadOptions)
+    : codex.startThread(threadOptions);
   const input: UserInput[] = systemPrompt
     ? [
         { type: "text", text: systemPrompt },

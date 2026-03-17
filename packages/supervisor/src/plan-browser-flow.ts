@@ -3,6 +3,7 @@ import type { AgentProviderSettings } from "@browser-tester/agent";
 import { Effect, Option, Schema } from "effect";
 import {
   BROWSER_TEST_MODEL,
+  CODEX_PLANNER_MODEL,
   DEFAULT_AGENT_PROVIDER,
   PLANNER_CHANGED_FILE_LIMIT,
   PLANNER_MAX_STEP_COUNT,
@@ -48,14 +49,18 @@ export const buildPlannerModelSettings = (
   options: Pick<PlanBrowserFlowOptions, "provider" | "providerSettings" | "target">,
 ): AgentProviderSettings => {
   const provider = options.provider ?? DEFAULT_AGENT_PROVIDER;
-  const providerSpecificSetting =
-    provider === "claude" ? { model: BROWSER_TEST_MODEL, permissionMode: "plan" as const } : {};
+  const providerSpecificSettings: Record<string, unknown> =
+    provider === "claude"
+      ? { model: BROWSER_TEST_MODEL, permissionMode: "plan" as const }
+      : provider === "codex"
+        ? { model: CODEX_PLANNER_MODEL }
+        : {};
 
   return {
     cwd: options.target.cwd,
     effort: PLANNER_MODEL_EFFORT,
     maxTurns: PLANNER_MAX_TURNS,
-    ...providerSpecificSetting,
+    ...providerSpecificSettings,
     ...(options.providerSettings ?? {}),
   };
 };
