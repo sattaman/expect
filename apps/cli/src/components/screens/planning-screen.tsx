@@ -78,24 +78,22 @@ export const PlanningScreen = () => {
         <Text color={COLORS.DIM}>{flowInstruction}</Text>
       </RuledBox>
 
-      <Box marginTop={1} paddingX={1}>
-        <Spinner />
-        <Text color={COLORS.DIM}>
-          {` ${stageLabel.padEnd(STAGE_LABEL_WIDTH)}${figures.ellipsis} `}
-          <Text color={COLORS.BORDER}>{formatElapsedTime(elapsed)}</Text>
-          {"  "}
-          {PLANNING_STAGES.map((_, index) => (
-            <Text key={index} color={index <= stageIndex ? COLORS.DIM : COLORS.BORDER}>
-              {index <= stageIndex ? "█" : "░"}
-            </Text>
-          ))}
-        </Text>
-      </Box>
-
-      <Box paddingX={1} marginTop={1}>
+      <Box marginTop={1} paddingX={1} justifyContent="space-between">
+        <Box>
+          <Spinner />
+          <Text color={COLORS.DIM}>
+            {` ${stageLabel.padEnd(STAGE_LABEL_WIDTH)}${figures.ellipsis} `}
+            <Text color={COLORS.BORDER}>{formatElapsedTime(elapsed)}</Text>
+            {"  "}
+            {PLANNING_STAGES.map((_, index) => (
+              <Text key={index} color={index <= stageIndex ? COLORS.DIM : COLORS.BORDER}>
+                {index <= stageIndex ? "█" : "░"}
+              </Text>
+            ))}
+          </Text>
+        </Box>
         <Text color={COLORS.BORDER}>
-          {"TIP "}
-          <Text color={COLORS.DIM}>{TIPS[tipIndex]}</Text>
+          {"TIP "}<Text color={COLORS.DIM}>{TIPS[tipIndex]}</Text>
         </Text>
       </Box>
     </Box>
