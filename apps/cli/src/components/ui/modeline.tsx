@@ -20,6 +20,9 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
   const savedFlowSummaries = useAppStore((state) => state.savedFlowSummaries);
   const latestRunReport = useAppStore((state) => state.latestRunReport);
   const liveViewUrl = useAppStore((state) => state.liveViewUrl);
+  const planningProvider = useAppStore((state) => state.planningProvider);
+  const planningModel = useAppStore((state) => state.planningModel);
+  const resolvedPlanningProvider = useAppStore((state) => state.resolvedPlanningProvider);
   switch (screen) {
     case "main": {
       const hints: HintSegment[] = [
@@ -54,11 +57,10 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
       ];
     case "planning": {
       const planningHints: HintSegment[] = [];
-      const provider = useAppStore.getState().resolvedPlanningProvider ?? useAppStore.getState().planningProvider;
-      const model = useAppStore.getState().planningModel;
+      const provider = resolvedPlanningProvider ?? planningProvider;
       const providerName = provider === "claude" ? "Claude" : provider === "codex" ? "Codex" : provider === "cursor" ? "Cursor" : null;
       if (providerName) {
-        planningHints.push({ key: providerName + (model ? ` · ${model}` : ""), label: "agent" });
+        planningHints.push({ key: providerName + (planningModel ? ` · ${planningModel}` : ""), label: "agent" });
       }
       return [
         ...planningHints,

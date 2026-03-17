@@ -198,6 +198,14 @@ export const PlanReviewScreen = () => {
 
   const totalItems = railItems.length;
   const currentRailItem = railItems[selectedIndex];
+  const firstStepIndex = railItems.findIndex((item) => item.kind === "step");
+
+  const [hasInitializedSelection, setHasInitializedSelection] = useState(false);
+  useEffect(() => {
+    if (hasInitializedSelection || firstStepIndex < 0) return;
+    setSelectedIndex(firstStepIndex);
+    setHasInitializedSelection(true);
+  }, [firstStepIndex, hasInitializedSelection]);
 
   useInput((input, key) => {
     if (editingState) {
