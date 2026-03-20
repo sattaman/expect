@@ -175,6 +175,71 @@ export const createBrowserMcpServer = <E>(
   );
 
   server.registerTool(
+    "console_logs",
+    {
+      title: "Console Logs",
+      description:
+        "Get browser console log messages. Optionally filter by log type (log, warning, error, info, debug).",
+      inputSchema: {
+        type: z
+          .string()
+          .optional()
+          .describe("Filter by console message type (e.g. 'error', 'warning', 'log')"),
+        clear: z.boolean().optional().describe("Clear the collected messages after reading"),
+      },
+    },
+    ({ type, clear }) =>
+      runMcp(
+        Effect.gen(function* () {
+          const session = yield* McpSession;
+          const sessionData = yield* session.requireSession();
+          const entries = type
+            ? sessionData.consoleMessages.filter((entry) => entry.type === type)
+            : sessionData.consoleMessages;
+          if (clear) sessionData.consoleMessages.length = 0;
+          return entries.length === 0 ? textResult("No console messages captured.") : jsonResult(entries);
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "network_requests",
+    {
+      title: "Network Requests",
+      description:
+        "Get captured network requests. Optionally filter by HTTP method, URL substring, or resource type (document, script, stylesheet, image, xhr, fetch, etc.).",
+      inputSchema: {
+        method: z.string().optional().describe("Filter by HTTP method (e.g. 'GET', 'POST')"),
+        url: z.string().optional().describe("Filter by URL substring match"),
+        resourceType: z
+          .string()
+          .optional()
+          .describe("Filter by resource type (e.g. 'xhr', 'fetch', 'document', 'script')"),
+        clear: z.boolean().optional().describe("Clear the collected requests after reading"),
+      },
+    },
+    ({ method, url, resourceType, clear }) =>
+      runMcp(
+        Effect.gen(function* () {
+          const session = yield* McpSession;
+          const sessionData = yield* session.requireSession();
+          const normalizedMethod = method?.toUpperCase();
+          const normalizedResourceType = resourceType?.toLowerCase();
+          const entries = sessionData.networkRequests.filter(
+            (entry) =>
+              (!normalizedMethod || entry.method === normalizedMethod) &&
+              (!url || entry.url.includes(url)) &&
+              (!normalizedResourceType || entry.resourceType === normalizedResourceType),
+          );
+          if (clear) sessionData.networkRequests.length = 0;
+          return entries.length === 0
+            ? textResult("No network requests captured.")
+            : jsonResult(entries);
+        }),
+      ),
+  );
+
+  server.registerTool(
     "close",
     {
       title: "Close Browser",
