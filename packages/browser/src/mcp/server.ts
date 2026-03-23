@@ -31,6 +31,8 @@ const imageResult = (base64: string) => ({
 
 const AsyncFunction = Object.getPrototypeOf(async () => {}).constructor;
 
+// Tool annotations (readOnlyHint, destructiveHint) enable parallel execution in the Claude Agent SDK.
+// See: https://platform.claude.com/docs/en/agent-sdk/agent-loop#parallel-tool-execution
 export const createBrowserMcpServer = <E>(
   runtime: ManagedRuntime.ManagedRuntime<McpSession, E>,
 ) => {
@@ -125,6 +127,7 @@ export const createBrowserMcpServer = <E>(
       title: "Screenshot",
       description:
         "Capture the current page state. Modes: 'screenshot' (default, PNG image), 'snapshot' (ARIA accessibility tree with element refs), 'annotated' (screenshot with numbered labels on interactive elements).",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         mode: z
           .enum(["screenshot", "snapshot", "annotated"])
@@ -180,6 +183,7 @@ export const createBrowserMcpServer = <E>(
       title: "Console Logs",
       description:
         "Get browser console log messages. Optionally filter by log type (log, warning, error, info, debug).",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         type: z
           .string()
@@ -210,6 +214,7 @@ export const createBrowserMcpServer = <E>(
       title: "Network Requests",
       description:
         "Get captured network requests. Optionally filter by HTTP method, URL substring, or resource type (document, script, stylesheet, image, xhr, fetch, etc.).",
+      annotations: { readOnlyHint: true },
       inputSchema: {
         method: z.string().optional().describe("Filter by HTTP method (e.g. 'GET', 'POST')"),
         url: z.string().optional().describe("Filter by URL substring match"),
@@ -246,6 +251,7 @@ export const createBrowserMcpServer = <E>(
     {
       title: "Close Browser",
       description: "Close the browser and end the session.",
+      annotations: { destructiveHint: true },
       inputSchema: {},
     },
     () =>
