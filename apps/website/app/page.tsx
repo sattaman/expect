@@ -1304,7 +1304,7 @@ export default function Home() {
                       },
                     }}
                   >
-                    Terminal
+                    Expect CLI
                   </motion.div>
                 ) : null}
               </AnimatePresence>
