@@ -105,8 +105,6 @@ export class AcpAdapter extends ServiceMap.Service<
 
 export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClient", {
   make: Effect.gen(function* () {
-    const x = yield* References.CurrentLogLevel;
-    console.log("CURRENT LOGL EVEL", x);
     const adapter = yield* AcpAdapter;
     yield* Effect.annotateLogsScoped({ adapter: adapter.args[0] });
     yield* Effect.logInfo(`Initializing AcpClient`);

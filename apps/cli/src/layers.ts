@@ -1,17 +1,9 @@
-import { Cause, Layer, Logger, References } from "effect";
+import { Layer, Logger, References } from "effect";
 import { DevTools } from "effect/unstable/devtools";
+import { NodeFileSystem } from "@effect/platform-node";
 import { Executor, Git, Planner, Reporter, Updates } from "@expect/supervisor";
 import { Agent, AgentBackend } from "@expect/agent";
-
-const stderrLogger = Logger.make(({ logLevel, message, date, cause }) => {
-  console.error(
-    `[effect ${logLevel}] ${date.toISOString()} ${JSON.stringify(
-      message,
-      null,
-      2,
-    )} ${cause ? `\n${Cause.pretty(cause)}` : ""}`,
-  );
-});
+import { DebugFileLogger } from "@expect/shared/observability";
 
 export const layerCli = ({ verbose, agent }: { verbose: boolean; agent: AgentBackend }) =>
   Layer.mergeAll(
@@ -23,6 +15,6 @@ export const layerCli = ({ verbose, agent }: { verbose: boolean; agent: AgentBac
     Git.withRepoRoot(process.cwd()),
   ).pipe(
     Layer.provide(Agent.layerFor(agent ?? "claude")),
-    Layer.provide(Logger.layer([stderrLogger])),
+    Layer.provide(Logger.layer([DebugFileLogger]).pipe(Layer.provide(NodeFileSystem.layer))),
     Layer.provideMerge(Layer.succeed(References.MinimumLogLevel, verbose ? "All" : "Error")),
   );
