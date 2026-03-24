@@ -1246,9 +1246,14 @@ export default function Home() {
               </div>
               <div className="absolute top-11 left-3.5 flex flex-col items-start">
                 <div
-                  className={`${berkeleyMonoRegular.className} mb-3 [letter-spacing:0em] font-bold text-[13px]/4.5 text-[#696969] dark:text-[#999999]`}
+                  className={`${berkeleyMonoRegular.className} mb-3 flex items-start gap-1 [letter-spacing:0em] font-bold text-[13px]/4.5`}
                 >
-                  npx expect-cli@latest
+                  <span className="w-3.75 shrink-0 tracking-[-0.01em] text-[color(display-p3_0.361_0.361_0.361)] dark:text-[color(display-p3_0.588_0.588_0.588)]">
+                    $
+                  </span>
+                  <span className="tracking-[-0.01em] text-[color(display-p3_0.195_0.195_0.195)] dark:text-[color(display-p3_0.881_0.881_0.881)]">
+                    npx expect-cli@latest
+                  </span>
                 </div>
                 <div className="flex items-center gap-[4px]">
                   <TerminalStepCheck phase={formTerminalStepPhase} isDark={isDark} />
