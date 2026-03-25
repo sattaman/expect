@@ -2,11 +2,7 @@ import { execFile } from "node:child_process";
 import * as path from "node:path";
 import { Effect, FileSystem } from "effect";
 import { NodeServices } from "@effect/platform-node";
-import {
-  HEALTHCHECK_LINT_KEYWORDS,
-  HEALTHCHECK_SCRIPT_TIMEOUT_MS,
-  LOCK_FILE_TO_AGENT,
-} from "../constants";
+import { AUDIT_LINT_KEYWORDS, AUDIT_SCRIPT_TIMEOUT_MS, LOCK_FILE_TO_AGENT } from "../constants";
 
 export interface ScriptResult {
   script: string;
@@ -14,19 +10,19 @@ export interface ScriptResult {
   output: string;
 }
 
-export interface PackageHealthResult {
+export interface PackageAuditResult {
   packageName: string;
   directory: string;
   results: ScriptResult[];
 }
 
-export interface HealthcheckPackageEntry {
+export interface AuditPackageEntry {
   packageName: string;
   directory: string;
   scripts: string[];
 }
 
-export interface HealthcheckCallbacks {
+export interface AuditCallbacks {
   onPackageStart: (packageName: string, scripts: string[]) => void;
   onScriptDone: (packageName: string, result: ScriptResult) => void;
 }
@@ -34,7 +30,7 @@ export interface HealthcheckCallbacks {
 const WORKSPACE_GLOBS = ["packages/*", "apps/*"];
 
 const isLintLikeScript = (scriptName: string): boolean =>
-  HEALTHCHECK_LINT_KEYWORDS.some((keyword) => scriptName.includes(keyword));
+  AUDIT_LINT_KEYWORDS.some((keyword) => scriptName.includes(keyword));
 
 const detectAgent = Effect.fn("detectAgent")(function* (rootDir: string) {
   const fileSystem = yield* FileSystem.FileSystem;
@@ -105,7 +101,7 @@ const runScript = (agent: string, directory: string, script: string): Promise<Sc
     execFile(
       agent,
       ["run", script],
-      { cwd: directory, timeout: HEALTHCHECK_SCRIPT_TIMEOUT_MS, maxBuffer: 5 * 1024 * 1024 },
+      { cwd: directory, timeout: AUDIT_SCRIPT_TIMEOUT_MS, maxBuffer: 5 * 1024 * 1024 },
       (error, stdout, stderr) => {
         const output = (stdout + "\n" + stderr).trim();
         resolve({ script, passed: !error, output });
@@ -115,7 +111,7 @@ const runScript = (agent: string, directory: string, script: string): Promise<Sc
 
 const discoverPackages = Effect.fn("discoverPackages")(function* (rootDir: string) {
   const directories = yield* listWorkspaceDirectories(rootDir);
-  const entries: HealthcheckPackageEntry[] = [];
+  const entries: AuditPackageEntry[] = [];
 
   for (const directory of directories) {
     const packageJson = yield* readPackageJson(directory).pipe(
@@ -138,10 +134,10 @@ const discoverPackages = Effect.fn("discoverPackages")(function* (rootDir: strin
   return entries;
 });
 
-export const runHealthcheck = async (
+export const runAudit = async (
   rootDir: string,
-  callbacks: HealthcheckCallbacks,
-): Promise<PackageHealthResult[]> => {
+  callbacks: AuditCallbacks,
+): Promise<PackageAuditResult[]> => {
   const effect = Effect.gen(function* () {
     const agent = yield* detectAgent(rootDir);
     const packages = yield* discoverPackages(rootDir);
@@ -163,7 +159,7 @@ export const runHealthcheck = async (
             packageName: entry.packageName,
             directory: entry.directory,
             results: scriptResults,
-          } satisfies PackageHealthResult;
+          } satisfies PackageAuditResult;
         }),
       { concurrency: 4 },
     );

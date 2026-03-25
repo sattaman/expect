@@ -7,6 +7,7 @@ import { ALT_SCREEN_OFF, ALT_SCREEN_ON, VERSION } from "./constants";
 import { ChangesFor, Git } from "@expect/supervisor";
 import { runHeadless } from "./utils/run-test";
 import { runInit } from "./commands/init";
+import { runAuditCommand } from "./commands/audit";
 import { isRunningInAgent } from "./utils/is-running-in-agent";
 import { isHeadless } from "./utils/is-headless";
 import type { AgentBackend } from "@expect/agent";
@@ -149,6 +150,13 @@ program
   .option("-y, --yes", "skip confirmation prompts")
   .action(async (opts: { yes?: boolean }) => {
     await runInit(opts);
+  });
+
+program
+  .command("audit")
+  .description("audit your workspace for lint, type, and formatting issues")
+  .action(async () => {
+    await runAuditCommand();
   });
 
 program.action(async () => {

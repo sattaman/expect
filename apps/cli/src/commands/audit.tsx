@@ -5,7 +5,7 @@ import pc from "picocolors";
 import figures from "figures";
 import { isRunningInAgent } from "../utils/is-running-in-agent";
 import { isHeadless } from "../utils/is-headless";
-import { runHealthcheck, type PackageHealthResult, type ScriptResult } from "../utils/healthcheck";
+import { runAudit, type PackageAuditResult, type ScriptResult } from "../utils/audit";
 
 interface PackageStatus {
   scripts: string[];
@@ -13,12 +13,12 @@ interface PackageStatus {
   done: boolean;
 }
 
-const HealthcheckDisplay = ({ statusMap }: { statusMap: Map<string, PackageStatus> }) => {
+const AuditDisplay = ({ statusMap }: { statusMap: Map<string, PackageStatus> }) => {
   const entries = Array.from(statusMap.entries());
 
   return (
     <Box flexDirection="column" paddingY={1}>
-      <Text bold>expect healthcheck</Text>
+      <Text bold>expect audit</Text>
       <Text> </Text>
       {entries.map(([packageName, status]) => (
         <Box key={packageName} flexDirection="column">
@@ -76,7 +76,7 @@ const HealthcheckDisplay = ({ statusMap }: { statusMap: Map<string, PackageStatu
   );
 };
 
-const HealthcheckSummary = ({ results }: { results: PackageHealthResult[] }) => {
+const AuditSummary = ({ results }: { results: PackageAuditResult[] }) => {
   let totalPassed = 0;
   let totalFailed = 0;
   for (const packageResult of results) {
@@ -89,10 +89,22 @@ const HealthcheckSummary = ({ results }: { results: PackageHealthResult[] }) => 
   const summary = `${totalPassed} passed, ${totalFailed} failed`;
 
   return (
-    <Box>
+    <Box flexDirection="column" gap={1}>
       <Text bold color={totalFailed > 0 ? "red" : "green"}>
         {summary}
       </Text>
+      {totalFailed > 0 && (
+        <Text color="yellow">
+          Run <Text bold>expect</Text> to test your changes in a real browser and catch issues
+          before they ship.
+        </Text>
+      )}
+      {totalFailed === 0 && (
+        <Text color="green">
+          Looking good! Run <Text bold>expect</Text> to verify your changes work end-to-end in the
+          browser.
+        </Text>
+      )}
     </Box>
   );
 };
@@ -103,25 +115,25 @@ const runInteractive = async () => {
     current: new Map(),
   };
   let setStatusMap: ((map: Map<string, PackageStatus>) => void) | undefined;
-  let setFinalResults: ((results: PackageHealthResult[]) => void) | undefined;
+  let setFinalResults: ((results: PackageAuditResult[]) => void) | undefined;
 
-  const HealthcheckApp = () => {
+  const AuditApp = () => {
     const [statusMap, _setStatusMap] = useState<Map<string, PackageStatus>>(new Map());
-    const [finalResults, _setFinalResults] = useState<PackageHealthResult[] | undefined>();
+    const [finalResults, _setFinalResults] = useState<PackageAuditResult[] | undefined>();
     setStatusMap = (map) => _setStatusMap(new Map(map));
     setFinalResults = _setFinalResults;
 
     return (
       <Box flexDirection="column">
-        <HealthcheckDisplay statusMap={statusMap} />
-        {finalResults && <HealthcheckSummary results={finalResults} />}
+        <AuditDisplay statusMap={statusMap} />
+        {finalResults && <AuditSummary results={finalResults} />}
       </Box>
     );
   };
 
-  const instance = render(<HealthcheckApp />);
+  const instance = render(<AuditApp />);
 
-  const results = await runHealthcheck(rootDir, {
+  const results = await runAudit(rootDir, {
     onPackageStart: (packageName, scripts) => {
       statusMapRef.current.set(packageName, { scripts, completed: [], done: false });
       setStatusMap?.(statusMapRef.current);
@@ -153,10 +165,10 @@ const runPlain = async () => {
   const rootDir = process.cwd();
 
   console.log("");
-  console.log(pc.bold("expect healthcheck"));
+  console.log(pc.bold("expect audit"));
   console.log("");
 
-  const results = await runHealthcheck(rootDir, {
+  const results = await runAudit(rootDir, {
     onPackageStart: (packageName, scripts) => {
       console.log(`${figures.arrowRight} ${pc.bold(packageName)} (${scripts.join(", ")})`);
     },
@@ -183,12 +195,29 @@ const runPlain = async () => {
   const summary = `${totalPassed} passed, ${totalFailed} failed`;
   const summaryColor = totalFailed > 0 ? pc.red : pc.green;
   console.log(summaryColor(pc.bold(summary)));
+
+  if (totalFailed > 0) {
+    console.log("");
+    console.log(
+      pc.yellow(
+        `Run ${pc.bold("expect")} to test your changes in a real browser and catch issues before they ship.`,
+      ),
+    );
+  } else {
+    console.log("");
+    console.log(
+      pc.green(
+        `Looking good! Run ${pc.bold("expect")} to verify your changes work end-to-end in the browser.`,
+      ),
+    );
+  }
+
   console.log("");
 
   if (totalFailed > 0) process.exit(1);
 };
 
-export const runHealthcheckCommand = async () => {
+export const runAuditCommand = async () => {
   if (isRunningInAgent() || isHeadless()) {
     await runPlain();
   } else {
