@@ -7,5 +7,15 @@
   "access": "public",
   "baseBranch": "main",
   "updateInternalDependencies": "patch",
-  "ignore": ["@expect/website"]
+  "ignore": [
+    "@expect/agent",
+    "@expect/browser",
+    "@expect/cookies",
+    "@expect/expect",
+    "@expect/minecraft-ui",
+    "@expect/shared",
+    "@expect/skill",
+    "@expect/supervisor",
+    "@expect/website"
+  ]
 }
