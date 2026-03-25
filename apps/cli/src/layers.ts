@@ -2,7 +2,7 @@ import { Layer, References } from "effect";
 import { DevTools } from "effect/unstable/devtools";
 import { Executor, FlowStorage, Git, Reporter, Updates } from "@expect/supervisor";
 import { Agent, AgentBackend } from "@expect/agent";
-import { Analytics, DebugFileLoggerLayer } from "@expect/shared/observability";
+import { Analytics, DebugFileLoggerLayer, Tracing } from "@expect/shared/observability";
 
 export const layerCli = ({ verbose, agent }: { verbose: boolean; agent: AgentBackend }) => {
   const gitLayer = Git.withRepoRoot(process.cwd());
@@ -18,6 +18,7 @@ export const layerCli = ({ verbose, agent }: { verbose: boolean; agent: AgentBac
   ).pipe(
     Layer.provide(Agent.layerFor(agent ?? "claude")),
     Layer.provide(DebugFileLoggerLayer),
+    Layer.provide(Tracing.layerAxiom),
     Layer.provideMerge(Layer.succeed(References.MinimumLogLevel, verbose ? "All" : "Error")),
   );
 };
