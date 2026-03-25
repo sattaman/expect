@@ -2,10 +2,7 @@ import { defineConfig } from "vite-plus";
 
 export default defineConfig({
   staged: {
-    "*.{js,ts,tsx}": [
-      "./node_modules/oxfmt/bin/oxfmt --write",
-      "./node_modules/oxlint/bin/oxlint --fix",
-    ],
+    "*.{js,ts,tsx}": "vp check --fix",
   },
   lint: {
     ignorePatterns: ["archive", ".next", "dist"],
