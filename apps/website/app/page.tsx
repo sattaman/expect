@@ -57,6 +57,9 @@ const BUTTON_CURSOR_RENDER_TOP = 4;
 const CURSOR_TARGET_RIGHT_INSET_X = 72;
 const SECOND_FIELD_CURSOR_TARGET_RIGHT_INSET_X = 84;
 const SUBMIT_BUTTON_CURSOR_TARGET_RIGHT_INSET_X = 34;
+const MOBILE_VIEWPORT_MAX_WIDTH_PX = 639;
+const MOBILE_CURSOR_TARGET_LEFT_INSET_X = 32;
+const MOBILE_SECOND_FIELD_CURSOR_TARGET_LEFT_INSET_X = 32;
 const CURSOR_TOP_START_X = 82;
 const CURSOR_TOP_START_Y = 28;
 const CURSOR_MOVE_DELAY_S = 0.24;
@@ -556,6 +559,9 @@ export default function Home() {
   const fieldFocusShadow = isDark
     ? "color(display-p3 1 1 1 / 12%) 0px 0px 0px 0.75px"
     : FIRST_FIELD_FOCUS_SHADOW;
+  const containerOutlineColor = isDark ? "color(display-p3 1 1 1 / 8%)" : "color(display-p3 0 0 0 / 16%)";
+  const mobileContainerOutlineShadow = `inset 0 -0.5px 0 0 ${containerOutlineColor}, inset 0.5px 0 0 0 ${containerOutlineColor}, inset -0.5px 0 0 0 ${containerOutlineColor}`;
+  const desktopContainerOutlineShadow = `inset 0 0 0 0.5px ${containerOutlineColor}`;
 
   const stagger = (i: number) => ({
     initial: { opacity: 0, y: 6 },
@@ -842,6 +848,7 @@ export default function Home() {
   }, [secondFieldTypingReady, secondFieldTypingComplete, secondTypedFieldLength]);
 
   useLayoutEffect(() => {
+    const mainContainer = mainContainerRef.current;
     const stage = cursorStageRef.current;
     const firstField = firstFieldRef.current;
     const secondField = secondFieldRef.current;
@@ -858,8 +865,11 @@ export default function Home() {
       const startX = clampNumber(CURSOR_TOP_START_X, 0, maxX);
       const startY = clampNumber(CURSOR_TOP_START_Y, 0, maxY);
 
-      const getFieldTarget = (fieldRect: DOMRect, rightInsetX: number) => {
-        const endHotspotX = fieldRect.right - stageRect.left - rightInsetX;
+      const isMobileViewport = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_WIDTH_PX}px)`).matches;
+      const getFieldTarget = (fieldRect: DOMRect, insetX: number, side: "left" | "right" = "right") => {
+        const endHotspotX = side === "left"
+          ? fieldRect.left - stageRect.left + insetX
+          : fieldRect.right - stageRect.left - insetX;
         const endHotspotY = fieldRect.top - stageRect.top + fieldRect.height * 0.5;
 
         return {
@@ -868,8 +878,12 @@ export default function Home() {
         };
       };
 
-      const firstTarget = getFieldTarget(firstFieldRect, CURSOR_TARGET_RIGHT_INSET_X);
-      const secondTarget = getFieldTarget(secondFieldRect, SECOND_FIELD_CURSOR_TARGET_RIGHT_INSET_X);
+      const firstTarget = isMobileViewport
+        ? getFieldTarget(firstFieldRect, MOBILE_CURSOR_TARGET_LEFT_INSET_X, "left")
+        : getFieldTarget(firstFieldRect, CURSOR_TARGET_RIGHT_INSET_X);
+      const secondTarget = isMobileViewport
+        ? getFieldTarget(secondFieldRect, MOBILE_SECOND_FIELD_CURSOR_TARGET_LEFT_INSET_X, "left")
+        : getFieldTarget(secondFieldRect, SECOND_FIELD_CURSOR_TARGET_RIGHT_INSET_X);
       const submitTarget = getFieldTarget(submitButtonRect, SUBMIT_BUTTON_CURSOR_TARGET_RIGHT_INSET_X);
       const firstTravel = buildCursorTravel(startX, startY, firstTarget.endX, firstTarget.endY, maxX, maxY);
       const secondTravel = buildCursorDropTravel(
@@ -895,24 +909,57 @@ export default function Home() {
       setSubmitButtonBounds(getFieldBounds(submitButtonRect, stageRect));
     };
 
+    let scheduledFrame = 0;
+    const scheduleMeasure = () => {
+      if (scheduledFrame) {
+        cancelAnimationFrame(scheduledFrame);
+      }
+      scheduledFrame = requestAnimationFrame(() => {
+        scheduledFrame = 0;
+        measure();
+      });
+    };
+
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(measure);
+      raf2 = requestAnimationFrame(() => {
+        raf2 = 0;
+        measure();
+      });
     });
+    const resizeObserver = new ResizeObserver(scheduleMeasure);
+    resizeObserver.observe(stage);
+    resizeObserver.observe(firstField);
+    resizeObserver.observe(secondField);
+    resizeObserver.observe(submitButton);
+    if (mainContainer) {
+      resizeObserver.observe(mainContainer);
+    }
+    const visualViewport = window.visualViewport;
+    window.addEventListener("resize", scheduleMeasure);
+    visualViewport?.addEventListener("resize", scheduleMeasure);
     return () => {
       cancelAnimationFrame(raf1);
       if (raf2) cancelAnimationFrame(raf2);
+      if (scheduledFrame) cancelAnimationFrame(scheduledFrame);
+      resizeObserver.disconnect();
+      window.removeEventListener("resize", scheduleMeasure);
+      visualViewport?.removeEventListener("resize", scheduleMeasure);
     };
   }, [animationRunId]);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-start pt-20 px-5 bg-[linear-gradient(180deg,#FFFFFF_0%,rgb(247,247,247)_100%)] dark:bg-[radial-gradient(ellipse_at_center,rgb(14,14,14)_0%,#000000_100%)]">
+    <div className="flex min-h-screen flex-col items-center justify-start px-5 pt-0 sm:pt-20 bg-[linear-gradient(180deg,#FFFFFF_0%,rgb(247,247,247)_100%)] dark:bg-[radial-gradient(ellipse_at_center,rgb(14,14,14)_0%,#000000_100%)]">
       <div
         key={animationRunId}
         ref={mainContainerRef}
-        className="relative w-164.5 h-91.5 rounded-2xl flex items-center justify-center"
-        style={{ backgroundImage: isDark ? "linear-gradient(in oklab 180deg, oklab(16% 0 0) 0%, oklab(6% 0 0 / 0%) 100%)" : "linear-gradient(in oklab 180deg, oklab(95.5% 0 0) 0%, oklab(100% 0 0 / 0%) 100%)" }}
+        className="relative -mx-5 flex h-91.5 w-[calc(100%+2.5rem)] max-w-none items-start justify-start overflow-hidden rounded-none sm:mx-0 sm:w-164.5 sm:max-w-none sm:items-center sm:justify-center sm:overflow-visible sm:rounded-2xl"
       >
+        <div
+          className="pointer-events-none absolute inset-0 hidden rounded-2xl sm:block"
+          style={{ backgroundImage: isDark ? "linear-gradient(in oklab 180deg, oklab(16% 0 0) 0%, oklab(6% 0 0 / 0%) 100%)" : "linear-gradient(in oklab 180deg, oklab(95.5% 0 0) 0%, oklab(100% 0 0 / 0%) 100%)" }}
+          aria-hidden="true"
+        />
         <AnimatePresence>
           {showReplayIcon ? (
             <motion.button
@@ -941,16 +988,25 @@ export default function Home() {
           ) : null}
         </AnimatePresence>
         <div
-          className="pointer-events-none absolute inset-0 rounded-2xl"
+          className="pointer-events-none absolute inset-0 rounded-none sm:hidden"
           style={{
-            boxShadow: isDark ? "inset 0 0 0 0.5px color(display-p3 1 1 1 / 8%)" : "inset 0 0 0 0.5px color(display-p3 0 0 0 / 16%)",
+            boxShadow: mobileContainerOutlineShadow,
             WebkitMaskImage: "linear-gradient(to bottom, black 0%, transparent 100%)",
             maskImage: "linear-gradient(to bottom, black 0%, transparent 100%)",
           }}
           aria-hidden="true"
         />
-        <div className="relative w-[31.03125rem] h-76.75 translate-y-5">
-          <div className="relative w-93.25 h-76.75">
+        <div
+          className="pointer-events-none absolute inset-0 hidden rounded-2xl sm:block"
+          style={{
+            boxShadow: desktopContainerOutlineShadow,
+            WebkitMaskImage: "linear-gradient(to bottom, black 0%, transparent 100%)",
+            maskImage: "linear-gradient(to bottom, black 0%, transparent 100%)",
+          }}
+          aria-hidden="true"
+        />
+        <div className="absolute top-5 left-1/2 h-76.75 w-[31.03125rem] -translate-x-1/2 sm:relative sm:top-auto sm:left-auto sm:translate-x-0 sm:translate-y-5">
+          <div className="relative h-76.75 w-full sm:w-93.25">
             <div
               className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl [box-shadow:color(display-p3_1_1_1)_0px_0px_9px_inset] dark:[box-shadow:color(display-p3_0.08_0.08_0.08)_0px_0px_9px_inset]"
               style={{
@@ -961,14 +1017,14 @@ export default function Home() {
                 maskImage: "linear-gradient(to bottom, black 0%, black 68%, transparent 100%)",
               }}
             />
-            <div className="absolute top-3.5 left-3.5 flex items-start gap-[5.5px] p-0 size-fit">
+            <div className="absolute top-3.5 left-3.5 hidden items-start gap-[5.5px] p-0 size-fit sm:flex">
               <div className="rounded-full bg-[#D8D8D8] dark:bg-[#444444] shrink-0 size-2.5" />
               <div className="rounded-full bg-[#D8D8D8] dark:bg-[#444444] shrink-0 size-2.5" />
               <div className="rounded-full bg-[#D8D8D8] dark:bg-[#444444] shrink-0 size-2.5" />
             </div>
             {/* from Paper — https://app.paper.design/file/01KKVJZGYDH7NE03PKQE86N5EK?page=01KMAQWMFAADNQS52G7NJNERWY&node=J0T-0 (Mar 23, 2026) */}
             <div
-              className="absolute left-[29px] flex flex-col items-start"
+              className="absolute left-[82.75px] flex flex-col items-start sm:left-[29px]"
               style={{ top: "calc(0.875rem + 0.625rem + 76px)" }}
             >
               <div className="tracking-[-0.01em] text-black dark:text-[color(display-p3_0.92_0.92_0.92)] font-['IvarTextTRIAL-Italic','Ivar_Text_TRIAL',system-ui,sans-serif] italic text-[17.5px]/6.25 size-fit">
@@ -1075,7 +1131,7 @@ export default function Home() {
                   }}
                 >
                   <div className="min-w-0 flex-1">
-                    {secondFieldInputActive ? (
+                    {secondFieldUnlocked ? (
                       <input
                         ref={secondEditableInputRef}
                         aria-label="Password"
@@ -1410,7 +1466,7 @@ export default function Home() {
               ) : null}
             </div>
           </div>
-          <div className="absolute right-0 top-1/2 z-10 -translate-y-1/2">
+          <div className="absolute left-[198px] top-[4.5rem] z-10 sm:left-auto sm:right-0 sm:top-1/2 sm:-translate-y-1/2">
             <motion.div
               drag
               dragConstraints={mainContainerRef}
@@ -1455,7 +1511,7 @@ export default function Home() {
               className="cursor-grab touch-none active:cursor-grabbing"
             >
             <motion.div
-              className="relative w-61.75 h-54.75 rounded-2xl [box-shadow:color(display-p3_1_1_1)_0px_0px_9px_inset,color(display-p3_0_0_0/5%)_0px_0px_0px_1px,color(display-p3_0_0_0/5%)_0px_0px_26px] dark:[box-shadow:color(display-p3_0.08_0.08_0.08)_0px_0px_9px_inset,color(display-p3_1_1_1/6%)_0px_0px_0px_1px,color(display-p3_0_0_0/20%)_0px_0px_26px]"
+              className="relative h-[200px] w-[225px] rounded-2xl [box-shadow:color(display-p3_1_1_1)_0px_0px_9px_inset,color(display-p3_0_0_0/5%)_0px_0px_0px_1px,color(display-p3_0_0_0/5%)_0px_0px_26px] dark:[box-shadow:color(display-p3_0.08_0.08_0.08)_0px_0px_9px_inset,color(display-p3_1_1_1/6%)_0px_0px_0px_1px,color(display-p3_0_0_0/20%)_0px_0px_26px] sm:h-54.75 sm:w-61.75"
             >
               <motion.div
                 className="pointer-events-none absolute inset-0 rounded-2xl bg-[color(display-p3_1_1_1)] dark:bg-[color(display-p3_0.1_0.1_0.1)]"
@@ -1550,26 +1606,26 @@ export default function Home() {
           </div>
         </div>
       </div>
-      <motion.div {...stagger(1)} className="mt-2 w-82.75 flex justify-start">
+      <motion.div {...stagger(1)} className="mt-2 flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none">
         <div
-          className={`${testSignifierRegular.className} w-77 h-fit tracking-[-0.04em] text-black dark:text-[color(display-p3_0.922_0.922_0.922)] text-3xl/9.5`}
+          className={`${testSignifierRegular.className} h-fit w-full max-w-77 tracking-[-0.04em] text-black dark:text-[color(display-p3_0.922_0.922_0.922)] text-3xl/9.5 sm:w-77 sm:max-w-none`}
         >
           Let agents test your code in a real browser
         </div>
       </motion.div>
-      <motion.div {...stagger(2)} className="w-82.75 flex justify-start">
+      <motion.div {...stagger(2)} className="flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none">
       <Description className="mt-[11px]">
         One command scans your unstaged changes or branch diff, then generates a test plan, and runs it against a live browser.
       </Description>
       </motion.div>
-      <motion.div {...stagger(3)} className="w-82.75 flex justify-start">
+      <motion.div {...stagger(3)} className="flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none">
         <div
-          className={`${testSignifierRegular.className} mt-12 mb-[0.5px] w-66.75 h-fit tracking-[-0.02em] text-black dark:text-[color(display-p3_0.92_0.92_0.92)] text-[18px]/6.25`}
+          className={`${testSignifierRegular.className} mt-12 mb-[0.5px] h-fit w-full max-w-66.75 tracking-[-0.02em] text-black dark:text-[color(display-p3_0.92_0.92_0.92)] text-[18px]/6.25 sm:w-66.75 sm:max-w-none`}
         >
           Installation
         </div>
       </motion.div>
-      <motion.div {...stagger(4)} className="w-82.75 flex justify-start pt-2 pb-6">
+      <motion.div {...stagger(4)} className="flex w-full max-w-82.75 justify-start pt-2 pb-6 sm:w-82.75 sm:max-w-none">
       <InstallCommands />
       </motion.div>
       <div className="grow" />
