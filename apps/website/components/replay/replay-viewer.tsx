@@ -206,28 +206,24 @@ export const ReplayViewer = ({
   liveRef.current = live;
   const isIdleSpeedRef = useRef(false);
   const userSpeedRef = useRef<(typeof SPEEDS)[number]>(1);
+  const lastCursorPosRef = useRef("");
+  const idleTicksRef = useRef(0);
+  const cleanupIdleObserverRef = useRef<(() => void) | undefined>(undefined);
 
   const destroyReplay = () => {
     clearInterval(timerRef.current);
     timerRef.current = undefined;
+    cleanupIdleObserverRef.current?.();
+    cleanupIdleObserverRef.current = undefined;
     cleanupZoomRef.current?.();
     cleanupZoomRef.current = undefined;
     replayerRef.current?.destroy();
     replayerRef.current = undefined;
   };
 
-  const findNextEventTime = (currentTimeMs: number) => {
-    if (events.length === 0) return undefined;
-    const replayStart = events[0].timestamp;
-    const absoluteTime = replayStart + currentTimeMs;
-    for (const event of events) {
-      if (event.timestamp > absoluteTime) return event.timestamp - replayStart;
-    }
-    return undefined;
-  };
-
   const startTimer = () => {
     clearInterval(timerRef.current);
+    idleTicksRef.current = 0;
     timerRef.current = setInterval(() => {
       const replayer = replayerRef.current;
       if (!replayer) return;
@@ -245,11 +241,25 @@ export const ReplayViewer = ({
         setPlaying(false);
         return;
       }
+    }, TIMER_INTERVAL_MS);
+  };
 
-      const nextEventTime = findNextEventTime(time);
-      const gap = nextEventTime !== undefined ? nextEventTime - time : 0;
-      const shouldIdle = gap > IDLE_THRESHOLD_MS;
+  const setupIdleSpeedObserver = (cursorEl: HTMLElement) => {
+    const idleThresholdTicks = Math.ceil(IDLE_THRESHOLD_MS / TIMER_INTERVAL_MS);
 
+    const checkIdle = () => {
+      const replayer = replayerRef.current;
+      if (!replayer || liveRef.current) return;
+
+      const pos = `${cursorEl.style.left},${cursorEl.style.top}`;
+      if (pos === lastCursorPosRef.current) {
+        idleTicksRef.current++;
+      } else {
+        idleTicksRef.current = 0;
+        lastCursorPosRef.current = pos;
+      }
+
+      const shouldIdle = idleTicksRef.current >= idleThresholdTicks;
       if (shouldIdle && !isIdleSpeedRef.current) {
         isIdleSpeedRef.current = true;
         replayer.setConfig({ speed: IDLE_SPEED });
@@ -257,7 +267,10 @@ export const ReplayViewer = ({
         isIdleSpeedRef.current = false;
         replayer.setConfig({ speed: userSpeedRef.current });
       }
-    }, TIMER_INTERVAL_MS);
+    };
+
+    const intervalId = setInterval(checkIdle, TIMER_INTERVAL_MS);
+    return () => clearInterval(intervalId);
   };
 
   useMountEffect(() => {
@@ -292,6 +305,8 @@ export const ReplayViewer = ({
 
     const iframe = wrapper.querySelector("iframe");
     if (!iframe) return undefined;
+
+    cleanupIdleObserverRef.current = setupIdleSpeedObserver(cursorEl);
 
     const backdrop = backdropRef.current;
     const zoomContainer = backdrop.parentElement;
