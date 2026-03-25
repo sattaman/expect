@@ -1,6 +1,9 @@
-import { Effect, Option } from "effect";
+import { DateTime, Effect, Option } from "effect";
 import type { ExecutedTestPlan } from "@expect/shared/models";
 import type { ViewerRunState, ViewerStepEvent } from "@expect/browser/mcp";
+
+const optionDateTimeToMs = (value: Option.Option<DateTime.DateTime>): number | undefined =>
+  Option.isSome(value) ? Number(DateTime.toEpochMillis(value.value)) : undefined;
 
 export const toViewerRunState = (executed: ExecutedTestPlan): ViewerRunState => {
   const runFinishedEvent = executed.events.find((event) => event._tag === "RunFinished");
@@ -20,6 +23,8 @@ export const toViewerRunState = (executed: ExecutedTestPlan): ViewerRunState => 
     title: step.title,
     status: step.status,
     summary: Option.isSome(step.summary) ? step.summary.value : undefined,
+    startedAtMs: optionDateTimeToMs(step.startedAt),
+    endedAtMs: optionDateTimeToMs(step.endedAt),
   }));
 
   return {

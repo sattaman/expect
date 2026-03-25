@@ -63,61 +63,48 @@ export const startReplayProxy = Effect.fn("startReplayProxy")(function* (
 ) {
   const app = new Hono();
 
-  app.get("/events", async (context) => {
-    try {
-      const upstream = await fetch(`${options.liveViewUrl}/events`);
-      if (!upstream.ok || !upstream.body) {
-        return new Response("retry: 2000\n\n", {
-          headers: {
-            "Content-Type": "text/event-stream",
-            "Cache-Control": "no-store",
-            Connection: "keep-alive",
-          },
-        });
-      }
-      return new Response(upstream.body, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-store",
-          Connection: "keep-alive",
-        },
-      });
-    } catch {
-      return new Response("retry: 2000\n\n", {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-store",
-          Connection: "keep-alive",
-        },
-      });
-    }
-  });
+  let cachedEvents: unknown[] = [];
+  let cachedSteps: unknown = { title: "", status: "running", steps: [] };
 
   app.get("/latest.json", async (context) => {
     try {
       const upstream = await fetch(`${options.liveViewUrl}/latest.json`);
-      if (!upstream.ok) return context.json([]);
-      const data = await upstream.json();
+      if (!upstream.ok) return context.json(cachedEvents);
+      const data: unknown[] = await upstream.json();
+      if (Array.isArray(data) && data.length > 0) cachedEvents = data;
       return context.json(data);
     } catch {
-      return context.json([]);
+      return context.json(cachedEvents);
+    }
+  });
+
+  app.post("/latest.json", async (context) => {
+    try {
+      const data: unknown[] = await context.req.json();
+      if (Array.isArray(data)) cachedEvents = data;
+      return new Response(undefined, { status: 204 });
+    } catch {
+      return new Response(undefined, { status: 400 });
     }
   });
 
   app.get("/steps", async (context) => {
     try {
       const upstream = await fetch(`${options.liveViewUrl}/steps`);
-      if (!upstream.ok) return context.json({ title: "", status: "running", steps: [] });
-      const data = await upstream.json();
+      if (!upstream.ok) return context.json(cachedSteps);
+      const data: unknown = await upstream.json();
+      cachedSteps = data;
       return context.json(data);
     } catch {
-      return context.json({ title: "", status: "running", steps: [] });
+      return context.json(cachedSteps);
     }
   });
 
   app.post("/steps", async (context) => {
     try {
       const body = await context.req.text();
+      const parsed: unknown = JSON.parse(body);
+      cachedSteps = parsed;
       const upstream = await fetch(`${options.liveViewUrl}/steps`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -128,29 +115,39 @@ export const startReplayProxy = Effect.fn("startReplayProxy")(function* (
         headers: Object.fromEntries(upstream.headers.entries()),
       });
     } catch {
-      return context.text("Bad Gateway", 502);
+      return new Response(undefined, { status: 204 });
     }
   });
 
-  app.all("/*", (context) => {
+  const replayHostParsed = new URL(options.replayHost);
+
+  app.all("/*", async (context) => {
     const requestPath = context.req.path;
-    if (requestPath === "/events" || requestPath === "/latest.json" || requestPath === "/steps") {
+    if (requestPath === "/latest.json" || requestPath === "/steps") {
       return context.text("Not Found", 404);
     }
 
     const upstreamUrl = new URL(requestPath, options.replayHost);
     upstreamUrl.search = new URL(context.req.url).search;
 
-    return proxy(upstreamUrl.toString(), {
-      headers: {
-        "User-Agent": context.req.header("user-agent") ?? "",
-        Accept: context.req.header("accept") ?? "*/*",
-        Host: new URL(options.replayHost).host,
-      },
-    });
+    try {
+      return await proxy(upstreamUrl.toString(), {
+        headers: {
+          "User-Agent": context.req.header("user-agent") ?? "",
+          Accept: context.req.header("accept") ?? "*/*",
+          Host: replayHostParsed.host,
+        },
+      });
+    } catch (error) {
+      console.error(`[replay-proxy] Failed to proxy ${requestPath} to ${upstreamUrl}:`, error);
+      return context.text(`Bad Gateway: could not reach ${replayHostParsed.host}`, 502);
+    }
   });
 
-  app.onError((_error, context) => context.text("Internal Server Error", 500));
+  app.onError((error, context) => {
+    console.error("[replay-proxy] Unhandled error:", error);
+    return context.text("Internal Server Error", 500);
+  });
 
   const serverHandle = yield* Effect.try({
     try: () => serve({ fetch: app.fetch, port: 0 }),

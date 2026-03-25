@@ -3,6 +3,8 @@ export interface ViewerStepEvent {
   readonly title: string;
   readonly status: "pending" | "active" | "passed" | "failed";
   readonly summary: string | undefined;
+  readonly startedAtMs: number | undefined;
+  readonly endedAtMs: number | undefined;
 }
 
 export interface ViewerRunState {

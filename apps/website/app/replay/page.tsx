@@ -1,12 +1,19 @@
 "use client";
 
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { QueryClient, QueryClientProvider, useQuery } from "@tanstack/react-query";
 import type { eventWithTime } from "@posthog/rrweb";
 import { ReplayViewer } from "@/components/replay/replay-viewer";
 import { startRecording, stopRecording } from "@/lib/rrweb";
 import { useMountEffect } from "@/hooks/use-mount-effect";
 import type { ViewerRunState } from "@/lib/replay-types";
+
+const POLL_INTERVAL_MS = 1000;
+
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
+});
 
 const RecordingMode = () => {
   const [recording, setRecording] = useState(true);
@@ -53,74 +60,44 @@ const RecordingMode = () => {
   );
 };
 
+const fetchLatestEvents = async (): Promise<eventWithTime[]> => {
+  const response = await fetch("/latest.json");
+  if (!response.ok) return [];
+  return response.json();
+};
+
+const fetchSteps = async (): Promise<ViewerRunState> => {
+  const response = await fetch("/steps");
+  if (!response.ok) return { title: "", status: "running", summary: undefined, steps: [] };
+  return response.json();
+};
+
 const LiveMode = () => {
-  const [events, setEvents] = useState<eventWithTime[]>([]);
-  const [steps, setSteps] = useState<ViewerRunState | undefined>(undefined);
-  const [connected, setConnected] = useState(true);
-  const eventsRef = useRef<eventWithTime[]>([]);
   const addEventsRef = useRef<((newEvents: eventWithTime[]) => void) | undefined>(undefined);
+  const prevEventCountRef = useRef(0);
+
+  const eventsQuery = useQuery({
+    queryKey: ["replay-events"],
+    queryFn: fetchLatestEvents,
+    refetchInterval: POLL_INTERVAL_MS,
+  });
+
+  const stepsQuery = useQuery({
+    queryKey: ["replay-steps"],
+    queryFn: fetchSteps,
+    refetchInterval: POLL_INTERVAL_MS,
+  });
+
+  const events = eventsQuery.data ?? [];
+  const steps = stepsQuery.data;
+  const isRunning = !steps || steps.status === "running";
 
   useEffect(() => {
-    let cancelled = false;
-    let eventSource: EventSource | undefined;
-
-    fetch("/latest.json")
-      .then((response) => (response.ok ? response.json() : []))
-      .then((initialEvents: eventWithTime[]) => {
-        if (cancelled || initialEvents.length === 0) return;
-        eventsRef.current = initialEvents;
-        setEvents([...initialEvents]);
-      })
-      .catch(() => {});
-
-    fetch("/steps")
-      .then((response) => (response.ok ? response.json() : undefined))
-      .then((initialSteps: ViewerRunState | undefined) => {
-        if (cancelled || !initialSteps) return;
-        setSteps(initialSteps);
-      })
-      .catch(() => {});
-
-    let sseErrorCount = 0;
-    const SSE_MAX_ERRORS_BEFORE_DISCONNECT = 20;
-
-    eventSource = new EventSource("/events");
-
-    eventSource.addEventListener("replay", (message) => {
-      sseErrorCount = 0;
-      try {
-        const newEvents: eventWithTime[] = JSON.parse(message.data);
-        eventsRef.current = [...eventsRef.current, ...newEvents];
-        setEvents([...eventsRef.current]);
-        addEventsRef.current?.(newEvents);
-      } catch {
-        /* ignore parse errors */
-      }
-    });
-
-    eventSource.addEventListener("steps", (message) => {
-      sseErrorCount = 0;
-      try {
-        const state: ViewerRunState = JSON.parse(message.data);
-        setSteps(state);
-      } catch {
-        /* ignore parse errors */
-      }
-    });
-
-    eventSource.onerror = () => {
-      sseErrorCount++;
-      if (sseErrorCount >= SSE_MAX_ERRORS_BEFORE_DISCONNECT) {
-        setConnected(false);
-        eventSource?.close();
-      }
-    };
-
-    return () => {
-      cancelled = true;
-      eventSource?.close();
-    };
-  }, []);
+    if (events.length <= prevEventCountRef.current) return;
+    const newEvents = events.slice(prevEventCountRef.current);
+    prevEventCountRef.current = events.length;
+    addEventsRef.current?.(newEvents);
+  }, [events.length]);
 
   const handleAddEventsRef = (handler: (newEvents: eventWithTime[]) => void) => {
     addEventsRef.current = handler;
@@ -130,7 +107,7 @@ const LiveMode = () => {
     <ReplayViewer
       events={events}
       steps={steps}
-      live={connected}
+      live={isRunning}
       onAddEventsRef={handleAddEventsRef}
     />
   );
@@ -149,8 +126,10 @@ const ReplayPageInner = () => {
 
 export default function ReplayPage() {
   return (
-    <Suspense>
-      <ReplayPageInner />
-    </Suspense>
+    <QueryClientProvider client={queryClient}>
+      <Suspense>
+        <ReplayPageInner />
+      </Suspense>
+    </QueryClientProvider>
   );
 }

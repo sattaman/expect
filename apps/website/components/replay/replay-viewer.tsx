@@ -7,7 +7,7 @@ import { formatTime } from "@/lib/format-time";
 import { createCursorZoom } from "@/lib/cursor-zoom";
 import { useMountEffect } from "@/hooks/use-mount-effect";
 import { MacWindow } from "@/components/replay/mac-window";
-import type { ViewerRunState } from "@/lib/replay-types";
+import type { ViewerRunState, ViewerStepEvent } from "@/lib/replay-types";
 
 const SPEEDS = [1, 2, 4, 8] as const;
 const TIMER_INTERVAL_MS = 100;
@@ -34,6 +34,34 @@ const getReplayDuration = (replayEvents: eventWithTime[]) => {
 
 const formatPaperTime = (timeMs: number) =>
   formatTime(timeMs).padStart(PAPER_TIME_LENGTH, "0");
+
+const getStepRelativeTime = (step: ViewerStepEvent, replayStartMs: number) => {
+  const startMs =
+    step.startedAtMs !== undefined ? step.startedAtMs - replayStartMs : undefined;
+  const endMs =
+    step.endedAtMs !== undefined ? step.endedAtMs - replayStartMs : undefined;
+  return { startMs, endMs };
+};
+
+const STEP_COLORS = {
+  passed: { bg: "bg-emerald-50", text: "text-emerald-600", icon: "text-emerald-500" },
+  failed: { bg: "bg-red-50", text: "text-red-600", icon: "text-red-500" },
+  active: { bg: "bg-blue-50", text: "text-neutral-900", icon: "text-blue-500" },
+  pending: { bg: "", text: "text-neutral-500", icon: "text-neutral-300" },
+} as const;
+
+const STEP_ICONS: Record<string, string> = {
+  passed: "\u2713",
+  failed: "\u2717",
+  active: "\u25CF",
+  pending: "\u25CB",
+};
+
+const STATUS_BADGE_COLORS: Record<string, string> = {
+  running: "bg-blue-100 text-blue-700",
+  passed: "bg-emerald-100 text-emerald-700",
+  failed: "bg-red-100 text-red-700",
+};
 
 interface ControlIconProps {
   className?: string;
@@ -88,26 +116,21 @@ const FullscreenIcon = ({ className }: ControlIconProps) => (
   </svg>
 );
 
-const STATUS_COLORS: Record<string, string> = {
-  running: "bg-blue-100 text-blue-700",
-  passed: "bg-emerald-100 text-emerald-700",
-  failed: "bg-red-100 text-red-700",
-  active: "text-blue-600",
-  pending: "text-neutral-400",
-};
+interface StepPanelProps {
+  steps: ViewerRunState;
+  replayStartMs: number;
+  currentTime: number;
+  onSeek: (timeMs: number) => void;
+}
 
-const STEP_ICONS: Record<string, string> = {
-  passed: "\u2713",
-  failed: "\u2717",
-  active: "\u25CF",
-  pending: "\u25CB",
-};
-
-const StepPanel = ({ steps }: { steps: ViewerRunState }) => {
-  const activeStep = steps.steps.find((step) => step.status === "active");
-  const activeIndex = activeStep
-    ? steps.steps.indexOf(activeStep)
-    : -1;
+const StepPanel = ({ steps, replayStartMs, currentTime, onSeek }: StepPanelProps) => {
+  const currentStepIndex = (() => {
+    for (let index = steps.steps.length - 1; index >= 0; index--) {
+      const { startMs } = getStepRelativeTime(steps.steps[index], replayStartMs);
+      if (startMs !== undefined && currentTime >= startMs) return index;
+    }
+    return -1;
+  })();
 
   return (
     <div
@@ -119,7 +142,7 @@ const StepPanel = ({ steps }: { steps: ViewerRunState }) => {
           {steps.title || "Test Run"}
         </span>
         <span
-          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${STATUS_COLORS[steps.status] ?? ""}`}
+          className={`rounded-full px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide ${STATUS_BADGE_COLORS[steps.status] ?? ""}`}
         >
           {steps.status}
         </span>
@@ -127,34 +150,44 @@ const StepPanel = ({ steps }: { steps: ViewerRunState }) => {
       {steps.summary && (
         <p className="text-xs text-neutral-500 leading-relaxed">{steps.summary}</p>
       )}
-      <div className="flex flex-col gap-1">
-        {steps.steps.map((step, index) => (
-          <div
-            key={step.stepId}
-            className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm ${
-              step.status === "active" ? "bg-blue-50" : ""
-            }`}
-          >
-            <span
-              className={`flex size-5 shrink-0 items-center justify-center text-xs font-medium ${STATUS_COLORS[step.status] ?? "text-neutral-400"} ${step.status === "active" ? "animate-pulse" : ""}`}
+      <div className="flex flex-col gap-0.5">
+        {steps.steps.map((step, index) => {
+          const { startMs } = getStepRelativeTime(step, replayStartMs);
+          const isCurrentStep = index === currentStepIndex;
+          const colors = STEP_COLORS[step.status] ?? STEP_COLORS.pending;
+          const canSeek = startMs !== undefined;
+
+          return (
+            <button
+              key={step.stepId}
+              type="button"
+              disabled={!canSeek}
+              onClick={() => {
+                if (startMs !== undefined) onSeek(startMs);
+              }}
+              className={`flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm text-left transition-colors ${
+                isCurrentStep ? colors.bg : "hover:bg-neutral-50"
+              } ${canSeek ? "cursor-pointer" : "cursor-default"}`}
             >
-              {STEP_ICONS[step.status] ?? STEP_ICONS.pending}
-            </span>
-            <span className="text-neutral-400 text-xs font-medium">
-              {index + 1}.
-            </span>
-            <span
-              className={`font-medium ${step.status === "active" ? "text-neutral-900" : "text-neutral-600"}`}
-            >
-              {step.title}
-            </span>
-            {step.summary && (
-              <span className="ml-auto truncate text-xs text-neutral-400 max-w-[40%]">
-                {step.summary}
+              <span
+                className={`flex size-5 shrink-0 items-center justify-center text-xs font-medium ${colors.icon} ${step.status === "active" ? "animate-pulse" : ""}`}
+              >
+                {STEP_ICONS[step.status] ?? STEP_ICONS.pending}
               </span>
-            )}
-          </div>
-        ))}
+              <span className="text-neutral-400 text-xs font-medium tabular-nums">
+                {index + 1}.
+              </span>
+              <span className={`font-medium ${isCurrentStep ? colors.text : "text-neutral-600"}`}>
+                {step.title}
+              </span>
+              {startMs !== undefined && (
+                <span className="ml-auto shrink-0 text-[11px] tabular-nums text-neutral-300">
+                  {formatPaperTime(startMs)}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );
@@ -173,12 +206,6 @@ export const ReplayViewer = ({
   live = false,
   onAddEventsRef,
 }: ReplayViewerProps) => {
-  const activeStep = steps?.steps.find((step) => step.status === "active");
-  const activeStepIndex = activeStep
-    ? steps!.steps.indexOf(activeStep)
-    : -1;
-  const stepLabel = activeStep ? `Step ${activeStepIndex + 1}` : "";
-  const stepTitle = activeStep ? activeStep.title : "";
   const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [speed, setSpeed] = useState<(typeof SPEEDS)[number]>(1);
@@ -189,6 +216,8 @@ export const ReplayViewer = ({
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
   const cleanupZoomRef = useRef<(() => void) | undefined>(undefined);
   const autoPlayTriggeredRef = useRef(false);
+  const liveRef = useRef(live);
+  liveRef.current = live;
 
   const destroyReplay = () => {
     clearInterval(timerRef.current);
@@ -206,10 +235,12 @@ export const ReplayViewer = ({
       if (!replayer) return;
 
       const time = replayer.getCurrentTime();
+      setCurrentTime(time);
+
+      if (liveRef.current) return;
+
       const meta = replayer.getMetaData();
       const duration = meta.endTime - meta.startTime;
-
-      setCurrentTime(time);
 
       if (time >= duration) {
         clearInterval(timerRef.current);
@@ -345,20 +376,23 @@ export const ReplayViewer = ({
     });
   };
 
-  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const nextTime = Number(event.target.value);
-    setCurrentTime(nextTime);
+  const seekTo = (timeMs: number) => {
+    setCurrentTime(timeMs);
 
     const replayer = replayerRef.current;
     if (!replayer) return;
 
     if (playing) {
-      replayer.play(nextTime);
+      replayer.play(timeMs);
       startTimer();
       return;
     }
 
-    replayer.pause(nextTime);
+    replayer.pause(timeMs);
+  };
+
+  const handleSeek = (event: React.ChangeEvent<HTMLInputElement>) => {
+    seekTo(Number(event.target.value));
   };
 
   const handleSpeedChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -385,14 +419,36 @@ export const ReplayViewer = ({
   };
 
   const totalTime = getReplayDuration(events);
+  const replayStartMs = events.length > 0 ? events[0].timestamp : 0;
   const hasEvents = events.length > 1;
   const canPlay = hasEvents;
   const timeLabel = formatPaperTime(currentTime);
   const totalTimeLabel = formatPaperTime(totalTime);
 
+  const currentStepForLabel = (() => {
+    if (!steps || replayStartMs === 0) return undefined;
+    for (let index = steps.steps.length - 1; index >= 0; index--) {
+      const { startMs } = getStepRelativeTime(steps.steps[index], replayStartMs);
+      if (startMs !== undefined && currentTime >= startMs) {
+        return { index, step: steps.steps[index] };
+      }
+    }
+    return undefined;
+  })();
+
+  const stepLabel = currentStepForLabel ? `Step ${currentStepForLabel.index + 1}` : "";
+  const stepTitle = currentStepForLabel ? currentStepForLabel.step.title : "";
+
   return (
     <div data-rrweb-block className="flex h-screen flex-col gap-6 p-6">
-      {steps && <StepPanel steps={steps} />}
+      {steps && steps.steps.length > 0 && (
+        <StepPanel
+          steps={steps}
+          replayStartMs={replayStartMs}
+          currentTime={currentTime}
+          onSeek={seekTo}
+        />
+      )}
 
       <div
         className="flex flex-col gap-4 rounded-[28px] bg-white/90 px-6 py-5 backdrop-blur-xl"

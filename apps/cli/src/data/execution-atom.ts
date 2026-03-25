@@ -95,6 +95,23 @@ const execute = Effect.fnUntraced(
       ),
     );
 
+    if (replayUrl) {
+      const proxyBase = replayUrl.split("/replay")[0];
+      yield* Effect.tryPromise(() =>
+        fetch(`${liveViewUrl}/latest.json`).then(async (response) => {
+          if (!response.ok) return;
+          const allEvents = await response.json();
+          await fetch(`${proxyBase}/latest.json`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(allEvents),
+          });
+        }),
+      ).pipe(Effect.catchCause(() => Effect.void));
+
+      yield* pushStepState(proxyBase, toViewerRunState(finalExecuted));
+    }
+
     const report = yield* reporter.report(finalExecuted);
 
     const passedCount = report.steps.filter(
