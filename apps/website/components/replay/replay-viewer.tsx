@@ -7,7 +7,6 @@ import type { Replayer } from "@posthog/rrweb";
 import { animate, AnimatePresence, motion, useMotionValue, useTransform } from "motion/react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { formatTime } from "@/lib/format-time";
-import { createCursorZoom } from "@/lib/cursor-zoom";
 
 import { useMountEffect } from "@/hooks/use-mount-effect";
 import { MacWindow } from "@/components/replay/mac-window";
@@ -351,12 +350,11 @@ export const ReplayViewer = ({
     undefined,
   );
   const playbackBarRef = useRef<HTMLDivElement>(null);
-  const backdropRef = useRef<HTMLDivElement>(null);
   const replayRef = useRef<HTMLDivElement>(null);
   const viewerShellRef = useRef<HTMLDivElement>(null);
   const replayerRef = useRef<Replayer | undefined>(undefined);
   const timerRef = useRef<ReturnType<typeof setInterval>>(undefined);
-  const cleanupZoomRef = useRef<(() => void) | undefined>(undefined);
+  const cleanupLayoutRef = useRef<(() => void) | undefined>(undefined);
   const autoPlayTriggeredRef = useRef(false);
   const liveRef = useRef(live);
   liveRef.current = live;
@@ -388,8 +386,8 @@ export const ReplayViewer = ({
     timerRef.current = undefined;
     cleanupIdleObserverRef.current?.();
     cleanupIdleObserverRef.current = undefined;
-    cleanupZoomRef.current?.();
-    cleanupZoomRef.current = undefined;
+    cleanupLayoutRef.current?.();
+    cleanupLayoutRef.current = undefined;
     replayerRef.current?.destroy();
     replayerRef.current = undefined;
     browserFrameBackgroundRef.current = undefined;
@@ -572,8 +570,8 @@ export const ReplayViewer = ({
     void playPauseRef.current?.();
   }, [live, autoPlay, events.length]);
 
-  const setupScalingAndZoom = () => {
-    if (!replayRef.current || !backdropRef.current) return undefined;
+  const setupReplayScaling = () => {
+    if (!replayRef.current) return undefined;
 
     const replayContainer = replayRef.current;
     const wrapper = replayContainer.querySelector(".replayer-wrapper") as HTMLElement | undefined;
@@ -581,13 +579,6 @@ export const ReplayViewer = ({
 
     const iframe = wrapper.querySelector("iframe");
     if (!iframe) return undefined;
-
-    const backdrop = backdropRef.current;
-    const zoomContainer = backdrop.parentElement;
-
-    let currentFitScale = 1;
-    let currentCenterX = 0;
-    let currentCenterY = 0;
 
     const applyScale = () => {
       const recordedWidth = Number(iframe.getAttribute("width")) || 0;
@@ -603,10 +594,6 @@ export const ReplayViewer = ({
       const scaledHeight = recordedHeight * fitScale;
       const centerX = (containerWidth - scaledWidth) / 2;
       const centerY = (containerHeight - scaledHeight) / 2;
-
-      currentFitScale = fitScale;
-      currentCenterX = centerX;
-      currentCenterY = centerY;
 
       wrapper.style.position = "absolute";
       wrapper.style.top = "0";
@@ -628,29 +615,14 @@ export const ReplayViewer = ({
       attributeFilter: ["width", "height"],
     });
 
-    let cleanupCursorZoom: (() => void) | undefined;
-
     const cursorEl = wrapper.querySelector(".replayer-mouse") as HTMLElement | undefined;
     if (cursorEl) {
       cleanupIdleObserverRef.current = setupIdleSpeedObserver(cursorEl);
-    }
-    if (cursorEl && zoomContainer) {
-      cleanupCursorZoom = createCursorZoom(zoomContainer, backdrop, cursorEl, {
-        mapCursor: (x, y) => {
-          const backdropRect = backdrop.getBoundingClientRect();
-          const replayRect = replayContainer.getBoundingClientRect();
-          return {
-            x: x * currentFitScale + currentCenterX + (replayRect.left - backdropRect.left),
-            y: y * currentFitScale + currentCenterY + (replayRect.top - backdropRect.top),
-          };
-        },
-      });
     }
 
     return () => {
       resizeObserver.disconnect();
       iframeObserver.disconnect();
-      cleanupCursorZoom?.();
     };
   };
 
@@ -694,7 +666,7 @@ export const ReplayViewer = ({
     setPlaying(true);
     startTimer();
 
-    cleanupZoomRef.current = setupScalingAndZoom();
+    cleanupLayoutRef.current = setupReplayScaling();
   };
   playPauseRef.current = handlePlay;
 
@@ -1113,7 +1085,7 @@ export const ReplayViewer = ({
           </div>
         )}
         <div className="relative min-w-0 flex-1">
-          <div ref={backdropRef} className="absolute inset-0 p-6" style={REPLAY_BACKDROP_STYLE}>
+          <div className="absolute inset-0 p-6" style={REPLAY_BACKDROP_STYLE}>
             <div
               className="glow-pulse pointer-events-none absolute inset-0"
               style={{
