@@ -142,11 +142,11 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
 
     const browserMcpBinPath = fileURLToPath(import.meta.resolve("@expect/browser/cli"));
 
-    const MCP_SERVERS: acp.McpServer[] = [
+    const buildMcpServers = (env: ReadonlyArray<{ name: string; value: string }>): acp.McpServer[] => [
       {
         command: process.execPath,
         args: [browserMcpBinPath],
-        env: [],
+        env: [...env],
         name: "browser",
       },
     ];
@@ -160,13 +160,16 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
     });
     yield* Effect.logInfo("ACP connection initialized", {
       capabilities: initResponse.agentCapabilities,
-      mcpServers: MCP_SERVERS.map((server) => server.name),
     });
 
-    const createSession = Effect.fn("AcpClient.createSession")(function* (cwd: string) {
+    const createSession = Effect.fn("AcpClient.createSession")(function* (
+      cwd: string,
+      mcpEnv: ReadonlyArray<{ name: string; value: string }> = [],
+    ) {
       yield* Effect.annotateCurrentSpan({ cwd });
+      const mcpServers = buildMcpServers(mcpEnv);
       return yield* Effect.tryPromise({
-        try: () => connection.newSession({ cwd, mcpServers: MCP_SERVERS }),
+        try: () => connection.newSession({ cwd, mcpServers }),
         catch: (cause) => new AcpSessionCreateError({ cause }),
       }).pipe(
         Effect.map(({ sessionId }) => SessionId.makeUnsafe(sessionId)),
@@ -197,14 +200,16 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
       prompt,
       sessionId: sessionIdOption,
       cwd,
+      mcpEnv = [],
     }: {
       sessionId: Option.Option<SessionId>;
       prompt: string;
       cwd: string;
+      mcpEnv?: ReadonlyArray<{ name: string; value: string }>;
     }) {
       const sessionId = Option.isSome(sessionIdOption)
         ? sessionIdOption.value
-        : yield* createSession(cwd);
+        : yield* createSession(cwd, mcpEnv);
 
       yield* Effect.logDebug("ACP stream starting", { sessionId });
 

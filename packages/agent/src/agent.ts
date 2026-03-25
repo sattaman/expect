@@ -32,6 +32,7 @@ export class Agent extends ServiceMap.Service<
             cwd: options.cwd,
             sessionId: Option.map(options.sessionId, (id) => id as SessionId),
             prompt: options.prompt,
+            mcpEnv: options.mcpEnv,
           }),
       });
     }),

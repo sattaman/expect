@@ -1,4 +1,4 @@
-import { basename, dirname, extname, join } from "node:path";
+import path from "node:path";
 import type { Browser as PlaywrightBrowser, BrowserContext, Page } from "playwright";
 import type { eventWithTime } from "@rrweb/types";
 import { Config, Effect, Fiber, Layer, Option, Ref, Schedule, ServiceMap } from "effect";
@@ -280,7 +280,7 @@ export class McpSession extends ServiceMap.Service<McpSession>()("@browser/McpSe
             "\n";
 
           yield* fileSystem
-            .makeDirectory(dirname(resolvedReplayOutputPath), { recursive: true })
+            .makeDirectory(path.dirname(resolvedReplayOutputPath), { recursive: true })
             .pipe(
               Effect.catchCause((cause) =>
                 Effect.logDebug("Failed to create replay output directory", { cause }),
@@ -296,12 +296,12 @@ export class McpSession extends ServiceMap.Service<McpSession>()("@browser/McpSe
           replaySessionPath = resolvedReplayOutputPath;
 
           const runState = yield* Ref.get(latestRunStateRef);
-          const replayFileName = basename(resolvedReplayOutputPath);
-          const replayBaseName = basename(
+          const replayFileName = path.basename(resolvedReplayOutputPath);
+          const replayBaseName = path.basename(
             resolvedReplayOutputPath,
-            extname(resolvedReplayOutputPath),
+            path.extname(resolvedReplayOutputPath),
           );
-          const htmlReportPath = join(dirname(resolvedReplayOutputPath), `${replayBaseName}.html`);
+          const htmlReportPath = path.join(path.dirname(resolvedReplayOutputPath), `${replayBaseName}.html`);
           const reportHtml = buildReplayViewerHtml({
             title: runState ? `Test Report: ${runState.title}` : "Expect Report",
             eventsSource: { ndjsonPath: replayFileName },

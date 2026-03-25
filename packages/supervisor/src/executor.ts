@@ -1,3 +1,4 @@
+import * as path from "node:path";
 import { AcpSessionCreateError, AcpStreamError, Agent, AgentStreamOptions } from "@expect/agent";
 import { Effect, Layer, Option, Schema, ServiceMap, Stream } from "effect";
 import {
@@ -13,7 +14,12 @@ import {
 import { buildExecutionPrompt } from "@expect/shared/prompts";
 import { NodeServices } from "@effect/platform-node";
 import { Git } from "./git/git";
-import { EXECUTION_CONTEXT_FILE_LIMIT, EXECUTION_RECENT_COMMIT_LIMIT } from "./constants";
+import {
+  EXECUTION_CONTEXT_FILE_LIMIT,
+  EXECUTION_RECENT_COMMIT_LIMIT,
+  EXPECT_REPLAY_OUTPUT_ENV_NAME,
+  EXPECT_STATE_DIR,
+} from "./constants";
 
 export class ExecutionError extends Schema.ErrorClass<ExecutionError>("@supervisor/ExecutionError")(
   {
@@ -81,8 +87,16 @@ export class Executor extends ServiceMap.Service<Executor>()("@supervisor/Execut
         learnings: options.learnings,
       });
 
+      const planId = PlanId.makeUnsafe(crypto.randomUUID());
+      const replayOutputPath = path.join(
+        process.cwd(),
+        EXPECT_STATE_DIR,
+        "replays",
+        `${planId}.ndjson`,
+      );
+
       const syntheticPlan = new TestPlan({
-        id: PlanId.makeUnsafe(crypto.randomUUID()),
+        id: planId,
         changesFor: options.changesFor,
         currentBranch: context.currentBranch,
         diffPreview: context.diffPreview,
@@ -106,6 +120,7 @@ export class Executor extends ServiceMap.Service<Executor>()("@supervisor/Execut
         sessionId: Option.none(),
         prompt,
         systemPrompt: Option.none(),
+        mcpEnv: [{ name: EXPECT_REPLAY_OUTPUT_ENV_NAME, value: replayOutputPath }],
       });
 
       return agent.stream(streamOptions).pipe(
