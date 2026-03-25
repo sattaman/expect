@@ -36,7 +36,8 @@ const TERMINAL_SPINNER_TRACK = "#E3E3E3";
 const TERMINAL_SPINNER_ACTIVE = "#8E8E8E";
 /** Stroke width for the terminal loading ring (viewBox units). */
 const TERMINAL_SPINNER_STROKE = 2.1;
-const TERMINAL_STEP_LABEL_BASE_CLASS = "relative w-fit h-4.5 [letter-spacing:0em] font-bold shrink-0 text-[13px]/4.5";
+const TERMINAL_STEP_LABEL_BASE_CLASS =
+  "relative w-fit h-4.5 [letter-spacing:0em] font-bold shrink-0 text-[13px]/4.5";
 
 function getFailureColor(isDark: boolean) {
   return isDark ? TERMINAL_FAILURE_RED_DARK : TERMINAL_FAILURE_RED;
@@ -89,7 +90,7 @@ const SUBMIT_BUTTON_PRESS_SCALE = 0.965;
 const SUBMIT_SEQUENCE_FADE_MS = LOAD_SEQUENCE_FADE_MS + 40;
 const REDIRECT_STEP_START_DELAY_MS = 320;
 const REDIRECT_FAILURE_MORPH_HOLD_MS = 280;
-const AUTO_REPLAY_DELAY_MS = 1200;
+const AUTO_REPLAY_DELAY_MS = 3000;
 const FIRST_FIELD_IDLE_SHADOW =
   "color(display-p3 0 0 0 / 16%) 0px 0px 0px 0.5px, color(display-p3 0 0 0 / 3%) 0px 1px 5px";
 const FIRST_FIELD_FOCUS_SHADOW =
@@ -125,9 +126,20 @@ function clampNumber(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
-function cubicBezierPoint(start: number, control1: number, control2: number, end: number, t: number) {
+function cubicBezierPoint(
+  start: number,
+  control1: number,
+  control2: number,
+  end: number,
+  t: number,
+) {
   const invT = 1 - t;
-  return invT * invT * invT * start + 3 * invT * invT * t * control1 + 3 * invT * t * t * control2 + t * t * t * end;
+  return (
+    invT * invT * invT * start +
+    3 * invT * invT * t * control1 +
+    3 * invT * t * t * control2 +
+    t * t * t * end
+  );
 }
 
 function easeOutCubic(t: number) {
@@ -158,7 +170,14 @@ function getTerminalStepPhase({
   return "idle";
 }
 
-function buildCursorTravel(startX: number, startY: number, endX: number, endY: number, maxX: number, maxY: number): CursorTravel {
+function buildCursorTravel(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  maxX: number,
+  maxY: number,
+): CursorTravel {
   const clampedStartX = clampNumber(startX, 0, maxX);
   const clampedStartY = clampNumber(startY, 0, maxY);
   const clampedEndX = clampNumber(endX, 0, maxX);
@@ -169,27 +188,45 @@ function buildCursorTravel(startX: number, startY: number, endX: number, endY: n
   const control1Y = clampNumber(clampedStartY - CURSOR_ARC_LIFT_Y * 0.46, 0, maxY);
   const control2X = clampNumber(clampedStartX + deltaX * 0.74, 0, maxX);
   const control2Y = clampNumber(clampedStartY + deltaY * 0.36 - CURSOR_ARC_LIFT_Y * 0.12, 0, maxY);
-  const pathTimes = Array.from({ length: CURSOR_PATH_SAMPLE_COUNT }, (_, index) => index / (CURSOR_PATH_SAMPLE_COUNT - 1));
+  const pathTimes = Array.from(
+    { length: CURSOR_PATH_SAMPLE_COUNT },
+    (_, index) => index / (CURSOR_PATH_SAMPLE_COUNT - 1),
+  );
   const pathProgress = pathTimes.map((time) => easeOutCubic(time));
 
   return {
     pathTimes,
-    pathX: pathProgress.map((progress) => cubicBezierPoint(clampedStartX, control1X, control2X, clampedEndX, progress)),
-    pathY: pathProgress.map((progress) => cubicBezierPoint(clampedStartY, control1Y, control2Y, clampedEndY, progress)),
+    pathX: pathProgress.map((progress) =>
+      cubicBezierPoint(clampedStartX, control1X, control2X, clampedEndX, progress),
+    ),
+    pathY: pathProgress.map((progress) =>
+      cubicBezierPoint(clampedStartY, control1Y, control2Y, clampedEndY, progress),
+    ),
     pathRotate: pathTimes.map(
-      (time) => CURSOR_START_ROTATE + (0 - CURSOR_START_ROTATE) * easeOutCubic(Math.min(time / 0.88, 1)),
+      (time) =>
+        CURSOR_START_ROTATE + (0 - CURSOR_START_ROTATE) * easeOutCubic(Math.min(time / 0.88, 1)),
     ),
     endX: clampedEndX,
     endY: clampedEndY,
   };
 }
 
-function buildCursorDropTravel(startX: number, startY: number, endX: number, endY: number, maxX: number, maxY: number): CursorTravel {
+function buildCursorDropTravel(
+  startX: number,
+  startY: number,
+  endX: number,
+  endY: number,
+  maxX: number,
+  maxY: number,
+): CursorTravel {
   const clampedStartX = clampNumber(startX, 0, maxX);
   const clampedStartY = clampNumber(startY, 0, maxY);
   const clampedEndX = clampNumber(endX, 0, maxX);
   const clampedEndY = clampNumber(endY, 0, maxY);
-  const pathTimes = Array.from({ length: CURSOR_PATH_SAMPLE_COUNT }, (_, index) => index / (CURSOR_PATH_SAMPLE_COUNT - 1));
+  const pathTimes = Array.from(
+    { length: CURSOR_PATH_SAMPLE_COUNT },
+    (_, index) => index / (CURSOR_PATH_SAMPLE_COUNT - 1),
+  );
   const pathProgress = pathTimes.map((time) => easeOutCubic(time));
 
   return {
@@ -235,7 +272,10 @@ function TerminalSyncSpinner({
 
   return (
     <div
-      className={cn("relative flex shrink-0 items-center justify-center overflow-visible pointer-events-none", className)}
+      className={cn(
+        "relative flex shrink-0 items-center justify-center overflow-visible pointer-events-none",
+        className,
+      )}
       aria-hidden="true"
     >
       {showLoading ? (
@@ -275,7 +315,11 @@ function TerminalSyncSpinner({
                   strokeDasharray: loadingCircleFull
                     ? `${SPINNER_CIRCUMFERENCE} 0`
                     : `${SPINNER_DASH} ${SPINNER_GAP}`,
-                  stroke: loadingCircleFull ? successColor : isDark ? "#707070" : TERMINAL_SPINNER_ACTIVE,
+                  stroke: loadingCircleFull
+                    ? successColor
+                    : isDark
+                      ? "#707070"
+                      : TERMINAL_SPINNER_ACTIVE,
                 }}
                 transition={
                   loadingCircleFull
@@ -311,7 +355,7 @@ function TerminalSyncSpinner({
             }}
             initial={{
               opacity: 0,
-            scale: 0.8,
+              scale: 0.8,
             }}
             animate={{
               opacity: 1,
@@ -375,11 +419,7 @@ function TerminalSyncSpinner({
   );
 }
 
-function InputCaret({
-  visible,
-}: {
-  visible: boolean;
-}) {
+function InputCaret({ visible }: { visible: boolean }) {
   return (
     <motion.div
       className="ml-px h-[15px] w-px shrink-0 rounded-full bg-[color(display-p3_0.24_0.24_0.24/72%)] dark:bg-[color(display-p3_0.82_0.82_0.82/72%)]"
@@ -486,11 +526,7 @@ function TerminalStepLabel({
   );
 }
 
-function SignUpErrorCallout({
-  isDark = false,
-}: {
-  isDark?: boolean;
-}) {
+function SignUpErrorCallout({ isDark = false }: { isDark?: boolean }) {
   return (
     <div
       className={cn(
@@ -529,7 +565,9 @@ export default function Home() {
   const fieldFocusShadow = isDark
     ? "color(display-p3 1 1 1 / 12%) 0px 0px 0px 0.75px"
     : FIRST_FIELD_FOCUS_SHADOW;
-  const containerOutlineColor = isDark ? "color(display-p3 1 1 1 / 8%)" : "color(display-p3 0 0 0 / 16%)";
+  const containerOutlineColor = isDark
+    ? "color(display-p3 1 1 1 / 8%)"
+    : "color(display-p3 0 0 0 / 16%)";
   const mobileContainerOutlineShadow = `inset 0 -0.5px 0 0 ${containerOutlineColor}, inset 0.5px 0 0 0 ${containerOutlineColor}, inset -0.5px 0 0 0 ${containerOutlineColor}`;
   const desktopContainerOutlineShadow = `inset 0 0 0 0.5px ${containerOutlineColor}`;
 
@@ -594,15 +632,27 @@ export default function Home() {
   };
 
 
-  const firstFieldFocused = useDelayedFlag(firstFieldTouched, FIRST_FIELD_FOCUS_DELAY_MS, animationRunId);
-  const firstFieldTypingReady = useDelayedFlag(firstFieldFocused, FIRST_FIELD_TYPE_AFTER_FOCUS_DELAY_MS, animationRunId);
+  const firstFieldFocused = useDelayedFlag(
+    firstFieldTouched,
+    FIRST_FIELD_FOCUS_DELAY_MS,
+    animationRunId,
+  );
+  const firstFieldTypingReady = useDelayedFlag(
+    firstFieldFocused,
+    FIRST_FIELD_TYPE_AFTER_FOCUS_DELAY_MS,
+    animationRunId,
+  );
   const firstFieldTypingComplete = typedFieldLength >= FIRST_FIELD_VALUE.length;
   const terminalIndicatorMorphReady = useDelayedFlag(
     firstFieldTouched && firstFieldTypingComplete,
     FIRST_FIELD_POST_TYPE_CHECK_DELAY_MS,
     animationRunId,
   );
-  const terminalIndicatorSuccessReady = useDelayedFlag(terminalIndicatorMorphReady, LOAD_SEQUENCE_FADE_MS, animationRunId);
+  const terminalIndicatorSuccessReady = useDelayedFlag(
+    terminalIndicatorMorphReady,
+    LOAD_SEQUENCE_FADE_MS,
+    animationRunId,
+  );
   const terminalRowIndicatorSuccessReady = useDelayedFlag(
     terminalIndicatorSuccessReady,
     TERMINAL_ROW_INDICATOR_DELAY_MS,
@@ -613,16 +663,32 @@ export default function Home() {
     TERMINAL_NEXT_ROW_DELAY_MS + CURSOR_INDICATOR_SUCCESS_DISMISS_DELAY_MS,
     animationRunId,
   );
-  const cursorStageIsSecond = useDelayedFlag(cursorIndicatorSuccessDismissed, SECOND_FIELD_MOVE_AFTER_DISMISS_DELAY_MS, animationRunId);
-  const secondFieldFocused = useDelayedFlag(secondFieldTouched, FIRST_FIELD_FOCUS_DELAY_MS, animationRunId);
-  const secondFieldTypingReady = useDelayedFlag(secondFieldFocused, FIRST_FIELD_TYPE_AFTER_FOCUS_DELAY_MS, animationRunId);
+  const cursorStageIsSecond = useDelayedFlag(
+    cursorIndicatorSuccessDismissed,
+    SECOND_FIELD_MOVE_AFTER_DISMISS_DELAY_MS,
+    animationRunId,
+  );
+  const secondFieldFocused = useDelayedFlag(
+    secondFieldTouched,
+    FIRST_FIELD_FOCUS_DELAY_MS,
+    animationRunId,
+  );
+  const secondFieldTypingReady = useDelayedFlag(
+    secondFieldFocused,
+    FIRST_FIELD_TYPE_AFTER_FOCUS_DELAY_MS,
+    animationRunId,
+  );
   const secondFieldTypingComplete = secondTypedFieldLength >= SECOND_FIELD_VALUE.length;
   const passwordCursorIndicatorMorphReady = useDelayedFlag(
     secondFieldTouched && secondFieldTypingComplete,
     FIRST_FIELD_POST_TYPE_CHECK_DELAY_MS,
     animationRunId,
   );
-  const passwordCursorIndicatorSuccessReady = useDelayedFlag(passwordCursorIndicatorMorphReady, LOAD_SEQUENCE_FADE_MS, animationRunId);
+  const passwordCursorIndicatorSuccessReady = useDelayedFlag(
+    passwordCursorIndicatorMorphReady,
+    LOAD_SEQUENCE_FADE_MS,
+    animationRunId,
+  );
   const passwordTerminalIndicatorMorphReady = useDelayedFlag(
     passwordCursorIndicatorMorphReady,
     TERMINAL_ROW_INDICATOR_DELAY_MS,
@@ -638,8 +704,16 @@ export default function Home() {
     SUBMIT_BUTTON_MOVE_AFTER_SUCCESS_DELAY_MS,
     animationRunId,
   );
-  const submitPressStarted = useDelayedFlag(submitButtonTouched, SUBMIT_BUTTON_PRESS_AFTER_TOUCH_DELAY_MS, animationRunId);
-  const submitButtonClicked = useDelayedFlag(submitPressStarted, SUBMIT_BUTTON_PRESS_HOLD_MS, animationRunId);
+  const submitPressStarted = useDelayedFlag(
+    submitButtonTouched,
+    SUBMIT_BUTTON_PRESS_AFTER_TOUCH_DELAY_MS,
+    animationRunId,
+  );
+  const submitButtonClicked = useDelayedFlag(
+    submitPressStarted,
+    SUBMIT_BUTTON_PRESS_HOLD_MS,
+    animationRunId,
+  );
   const submitButtonPressed = submitPressStarted && !submitButtonClicked;
   const submitTerminalIndicatorMorphReady = useDelayedFlag(
     submitButtonClicked,
@@ -651,7 +725,11 @@ export default function Home() {
     SUBMIT_SEQUENCE_FADE_MS,
     animationRunId,
   );
-  const redirectStepStarted = useDelayedFlag(submitTerminalIndicatorSuccessReady, REDIRECT_STEP_START_DELAY_MS, animationRunId);
+  const redirectStepStarted = useDelayedFlag(
+    submitTerminalIndicatorSuccessReady,
+    REDIRECT_STEP_START_DELAY_MS,
+    animationRunId,
+  );
   const redirectTerminalIndicatorMorphReady = useDelayedFlag(
     redirectStepStarted,
     REDIRECT_FAILURE_MORPH_HOLD_MS,
@@ -694,17 +772,23 @@ export default function Home() {
   const terminalSubmitStepComplete = submitTerminalIndicatorSuccessReady;
   const terminalRedirectStepComplete = redirectTerminalIndicatorSuccessReady;
   const showTextCursor = firstFieldTouched && cursorMoveStage !== "third";
-  const showSubmitButtonIndicator = cursorMoveStage === "third" && !submitTerminalIndicatorSuccessReady;
+  const showSubmitButtonIndicator =
+    cursorMoveStage === "third" && !submitTerminalIndicatorSuccessReady;
   const showRedirectStepIndicator = redirectStepStarted && !redirectTerminalIndicatorSuccessReady;
   const showSignUpErrorCallout = redirectStepStarted;
-  const autoReplayReady = useDelayedFlag(redirectTerminalIndicatorSuccessReady, AUTO_REPLAY_DELAY_MS, animationRunId);
-  const cursorInteractionScale = submitButtonPressed ? CURSOR_BUTTON_PRESS_SCALE : cursorFieldPressScale;
+  const autoReplayReady = useDelayedFlag(
+    redirectTerminalIndicatorSuccessReady,
+    AUTO_REPLAY_DELAY_MS,
+    animationRunId,
+  );
+  const cursorInteractionScale = submitButtonPressed
+    ? CURSOR_BUTTON_PRESS_SCALE
+    : cursorFieldPressScale;
   const showFirstFieldCaret = !firstFieldInputActive && firstFieldVisuallyFocused;
   const showSecondFieldCaret = !secondFieldInputActive && secondFieldVisuallyFocused;
   const showButtonCursor = cursorMoveStage === "third";
   const formTerminalStepPhase = getTerminalStepPhase({
-    showLoading:
-      !passwordTerminalIndicatorMorphReady && !passwordTerminalIndicatorSuccessReady,
+    showLoading: !passwordTerminalIndicatorMorphReady && !passwordTerminalIndicatorSuccessReady,
     morphReady: passwordTerminalIndicatorMorphReady,
     successReady: passwordTerminalIndicatorSuccessReady,
   });
@@ -785,7 +869,8 @@ export default function Home() {
     const nextDelay =
       typedFieldLength === 0
         ? 0
-        : FIRST_FIELD_TYPE_STEP_MS + (previousCharacter === "@" || previousCharacter === "." ? 18 : 0);
+        : FIRST_FIELD_TYPE_STEP_MS +
+          (previousCharacter === "@" || previousCharacter === "." ? 18 : 0);
     const typingTimer = window.setTimeout(() => {
       setTypedFieldLength((currentLength) => Math.min(currentLength + 1, FIRST_FIELD_VALUE.length));
     }, nextDelay);
@@ -812,7 +897,9 @@ export default function Home() {
     if (!secondFieldTypingReady || secondFieldTypingComplete) return;
     const nextDelay = secondTypedFieldLength === 0 ? 0 : FIRST_FIELD_TYPE_STEP_MS;
     const typingTimer = window.setTimeout(() => {
-      setSecondTypedFieldLength((currentLength) => Math.min(currentLength + 1, SECOND_FIELD_VALUE.length));
+      setSecondTypedFieldLength((currentLength) =>
+        Math.min(currentLength + 1, SECOND_FIELD_VALUE.length),
+      );
     }, nextDelay);
     return () => {
       window.clearTimeout(typingTimer);
@@ -832,17 +919,24 @@ export default function Home() {
       const firstFieldRect = firstField.getBoundingClientRect();
       const secondFieldRect = secondField.getBoundingClientRect();
       const submitButtonRect = submitButton.getBoundingClientRect();
-      const mobileViewport = window.matchMedia(`(max-width: ${MOBILE_VIEWPORT_MAX_WIDTH_PX}px)`).matches;
+      const mobileViewport = window.matchMedia(
+        `(max-width: ${MOBILE_VIEWPORT_MAX_WIDTH_PX}px)`,
+      ).matches;
       const maxX = Math.max(stageRect.width - CURSOR_ART_WIDTH, 0);
       const maxY = Math.max(stageRect.height - CURSOR_ART_HEIGHT, 0);
       const startX = clampNumber(CURSOR_TOP_START_X, 0, maxX);
       const startY = clampNumber(CURSOR_TOP_START_Y, 0, maxY);
 
       setIsMobileViewport(mobileViewport);
-      const getFieldTarget = (fieldRect: DOMRect, insetX: number, side: "left" | "right" = "right") => {
-        const endHotspotX = side === "left"
-          ? fieldRect.left - stageRect.left + insetX
-          : fieldRect.right - stageRect.left - insetX;
+      const getFieldTarget = (
+        fieldRect: DOMRect,
+        insetX: number,
+        side: "left" | "right" = "right",
+      ) => {
+        const endHotspotX =
+          side === "left"
+            ? fieldRect.left - stageRect.left + insetX
+            : fieldRect.right - stageRect.left - insetX;
         const endHotspotY = fieldRect.top - stageRect.top + fieldRect.height * 0.5;
 
         return {
@@ -857,8 +951,18 @@ export default function Home() {
       const secondTarget = mobileViewport
         ? getFieldTarget(secondFieldRect, MOBILE_SECOND_FIELD_CURSOR_TARGET_LEFT_INSET_X, "left")
         : getFieldTarget(secondFieldRect, SECOND_FIELD_CURSOR_TARGET_RIGHT_INSET_X);
-      const submitTarget = getFieldTarget(submitButtonRect, SUBMIT_BUTTON_CURSOR_TARGET_RIGHT_INSET_X);
-      const firstTravel = buildCursorTravel(startX, startY, firstTarget.endX, firstTarget.endY, maxX, maxY);
+      const submitTarget = getFieldTarget(
+        submitButtonRect,
+        SUBMIT_BUTTON_CURSOR_TARGET_RIGHT_INSET_X,
+      );
+      const firstTravel = buildCursorTravel(
+        startX,
+        startY,
+        firstTarget.endX,
+        firstTarget.endY,
+        maxX,
+        maxY,
+      );
       const secondTravel = buildCursorDropTravel(
         firstTravel.endX,
         firstTravel.endY,
@@ -930,7 +1034,11 @@ export default function Home() {
       >
         <div
           className="pointer-events-none absolute inset-0 hidden rounded-2xl sm:block"
-          style={{ backgroundImage: isDark ? "linear-gradient(in oklab 180deg, oklab(16% 0 0) 0%, oklab(6% 0 0 / 0%) 100%)" : "linear-gradient(in oklab 180deg, oklab(95.5% 0 0) 0%, oklab(100% 0 0 / 0%) 100%)" }}
+          style={{
+            backgroundImage: isDark
+              ? "linear-gradient(in oklab 180deg, oklab(16% 0 0) 0%, oklab(6% 0 0 / 0%) 100%)"
+              : "linear-gradient(in oklab 180deg, oklab(95.5% 0 0) 0%, oklab(100% 0 0 / 0%) 100%)",
+          }}
           aria-hidden="true"
         />
         <div
@@ -959,7 +1067,8 @@ export default function Home() {
                 backgroundImage: isDark
                   ? "linear-gradient(in oklab 180deg, oklab(22% 0 0 / 88%) 0%, oklab(17% 0 0) 38%, oklab(12% 0 0) 82.16%, oklab(10% 0 0) 100%)"
                   : "linear-gradient(in oklab 180deg, oklab(100% 0 0 / 65%) 0%, oklab(99% 0 0) 82.16%, oklab(100% 0 0) 100%)",
-                WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 68%, transparent 100%)",
+                WebkitMaskImage:
+                  "linear-gradient(to bottom, black 0%, black 68%, transparent 100%)",
                 maskImage: "linear-gradient(to bottom, black 0%, black 68%, transparent 100%)",
               }}
             />
@@ -1006,7 +1115,11 @@ export default function Home() {
                     ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
                   }}
                   style={{
-                    backgroundColor: firstFieldTouched ? (isDark ? "color(display-p3 0.13 0.13 0.13)" : "color(display-p3 1 1 1)") : undefined,
+                    backgroundColor: firstFieldTouched
+                      ? isDark
+                        ? "color(display-p3 0.13 0.13 0.13)"
+                        : "color(display-p3 1 1 1)"
+                      : undefined,
                     transformOrigin: "center center",
                   }}
                 >
@@ -1025,7 +1138,9 @@ export default function Home() {
                           setEditableFocusedField("first");
                         }}
                         onBlur={() => {
-                          setEditableFocusedField((currentField) => (currentField === "first" ? null : currentField));
+                          setEditableFocusedField((currentField) =>
+                            currentField === "first" ? null : currentField,
+                          );
                         }}
                         autoComplete="email"
                         spellCheck={false}
@@ -1072,7 +1187,11 @@ export default function Home() {
                     ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
                   }}
                   style={{
-                    backgroundColor: secondFieldTouched ? (isDark ? "color(display-p3 0.13 0.13 0.13)" : "color(display-p3 1 1 1)") : undefined,
+                    backgroundColor: secondFieldTouched
+                      ? isDark
+                        ? "color(display-p3 0.13 0.13 0.13)"
+                        : "color(display-p3 1 1 1)"
+                      : undefined,
                     transformOrigin: "center center",
                   }}
                 >
@@ -1091,7 +1210,9 @@ export default function Home() {
                           setEditableFocusedField("second");
                         }}
                         onBlur={() => {
-                          setEditableFocusedField((currentField) => (currentField === "second" ? null : currentField));
+                          setEditableFocusedField((currentField) =>
+                            currentField === "second" ? null : currentField,
+                          );
                         }}
                         autoComplete="off"
                         spellCheck={false}
@@ -1213,7 +1334,8 @@ export default function Home() {
                           ? secondFieldTouched
                           : firstFieldTouched;
                     if (targetTouched || !targetBounds) return;
-                    const touchEarlyPx = cursorMoveStage === "first" ? FIRST_FIELD_TOUCH_EARLY_PX : 0;
+                    const touchEarlyPx =
+                      cursorMoveStage === "first" ? FIRST_FIELD_TOUCH_EARLY_PX : 0;
 
                     const x = typeof latest.x === "number" ? latest.x : activeCursorTravel.endX;
                     const y = typeof latest.y === "number" ? latest.y : activeCursorTravel.endY;
@@ -1239,7 +1361,10 @@ export default function Home() {
                       setFirstFieldTouched(true);
                     }
                   }}
-                  style={{ transformOrigin: `${CURSOR_HOTSPOT_X}px ${CURSOR_HOTSPOT_Y}px`, willChange: "transform" }}
+                  style={{
+                    transformOrigin: `${CURSOR_HOTSPOT_X}px ${CURSOR_HOTSPOT_Y}px`,
+                    willChange: "transform",
+                  }}
                 >
                   {showTextCursor ? (
                     <svg
@@ -1249,7 +1374,13 @@ export default function Home() {
                       viewBox="0 0 32 32"
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
-                      style={{ width: "39px", height: "39px", top: "1px", left: "0px", position: "absolute" }}
+                      style={{
+                        width: "39px",
+                        height: "39px",
+                        top: "1px",
+                        left: "0px",
+                        position: "absolute",
+                      }}
                     >
                       <defs>
                         <filter
@@ -1275,8 +1406,17 @@ export default function Home() {
                             type="matrix"
                             values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.22 0"
                           />
-                          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_313" />
-                          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_313" result="shape" />
+                          <feBlend
+                            mode="normal"
+                            in2="BackgroundImageFix"
+                            result="effect1_dropShadow_1_313"
+                          />
+                          <feBlend
+                            mode="normal"
+                            in="SourceGraphic"
+                            in2="effect1_dropShadow_1_313"
+                            result="shape"
+                          />
                         </filter>
                       </defs>
                       <g filter="url(#cursor-text-shadow)">
@@ -1348,8 +1488,17 @@ export default function Home() {
                             type="matrix"
                             values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.22 0"
                           />
-                          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_148" />
-                          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_148" result="shape" />
+                          <feBlend
+                            mode="normal"
+                            in2="BackgroundImageFix"
+                            result="effect1_dropShadow_1_148"
+                          />
+                          <feBlend
+                            mode="normal"
+                            in="SourceGraphic"
+                            in2="effect1_dropShadow_1_148"
+                            result="shape"
+                          />
                         </filter>
                       </defs>
                     </svg>
@@ -1362,7 +1511,13 @@ export default function Home() {
                       fill="none"
                       xmlns="http://www.w3.org/2000/svg"
                       preserveAspectRatio="none"
-                      style={{ width: "37px", height: "41px", top: 0, left: 0, position: "absolute" }}
+                      style={{
+                        width: "37px",
+                        height: "41px",
+                        top: 0,
+                        left: 0,
+                        position: "absolute",
+                      }}
                     >
                       <defs>
                         <filter
@@ -1388,8 +1543,17 @@ export default function Home() {
                             type="matrix"
                             values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.22 0"
                           />
-                          <feBlend mode="normal" in2="BackgroundImageFix" result="effect1_dropShadow_1_316" />
-                          <feBlend mode="normal" in="SourceGraphic" in2="effect1_dropShadow_1_316" result="shape" />
+                          <feBlend
+                            mode="normal"
+                            in2="BackgroundImageFix"
+                            result="effect1_dropShadow_1_316"
+                          />
+                          <feBlend
+                            mode="normal"
+                            in="SourceGraphic"
+                            in2="effect1_dropShadow_1_316"
+                            result="shape"
+                          />
                         </filter>
                       </defs>
                       <g filter="url(#cursor-pointer-shadow)">
@@ -1422,7 +1586,9 @@ export default function Home() {
               animate={{
                 scale: terminalDragging ? 0.992 : 1,
                 filter: terminalDragging
-                  ? isDark ? "drop-shadow(0px 6px 14px rgba(0, 0, 0, 0.3))" : "drop-shadow(0px 6px 10px rgba(0, 0, 0, 0.045))"
+                  ? isDark
+                    ? "drop-shadow(0px 6px 14px rgba(0, 0, 0, 0.3))"
+                    : "drop-shadow(0px 6px 10px rgba(0, 0, 0, 0.045))"
                   : "drop-shadow(0px 0px 0px rgba(0, 0, 0, 0))",
               }}
               transition={{
@@ -1456,123 +1622,134 @@ export default function Home() {
               style={{ x: terminalOffsetX, y: terminalOffsetY, willChange: "transform, filter" }}
               className="cursor-default active:cursor-grabbing sm:cursor-grab sm:touch-none"
             >
-            <motion.div
-              className="relative h-[200px] w-[225px] rounded-2xl [box-shadow:color(display-p3_1_1_1)_0px_0px_9px_inset,color(display-p3_0_0_0/5%)_0px_0px_0px_1px,color(display-p3_0_0_0/5%)_0px_0px_26px] dark:[box-shadow:color(display-p3_0.08_0.08_0.08)_0px_0px_9px_inset,color(display-p3_1_1_1/6%)_0px_0px_0px_1px,color(display-p3_0_0_0/20%)_0px_0px_26px] sm:h-54.75 sm:w-61.75"
-            >
-              <motion.div
-                className="pointer-events-none absolute inset-0 rounded-2xl bg-[color(display-p3_1_1_1)] dark:bg-[color(display-p3_0.1_0.1_0.1)]"
-                initial={false}
-                animate={{ opacity: terminalDragging ? 0.94 : 1 }}
-                transition={{
-                  duration: 0.16,
-                  ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-                }}
-                style={{ willChange: "opacity" }}
-                aria-hidden="true"
-              />
-              <div className="absolute top-3.5 left-3.5 flex items-start gap-[5.5px] p-0 size-fit">
-                <div className="rounded-full bg-[#DDDDDD] dark:bg-[#3A3A3A] shrink-0 size-2.5" />
-                <div className="rounded-full bg-[#DDDDDD] dark:bg-[#3A3A3A] shrink-0 size-2.5" />
-                <div className="rounded-full bg-[#DDDDDD] dark:bg-[#3A3A3A] shrink-0 size-2.5" />
-              </div>
-              <div className="absolute top-11 left-3.5 flex flex-col items-start">
-                <div
-                  className={`${berkeleyMonoRegular.className} mb-3 flex items-start gap-1 [letter-spacing:0em] font-bold text-[13px]/4.5`}
-                >
-                  <span className="w-3.75 shrink-0 tracking-[-0.01em] text-[color(display-p3_0.361_0.361_0.361)] dark:text-[color(display-p3_0.588_0.588_0.588)]">
-                    $
-                  </span>
-                  <span className="tracking-[-0.01em] text-[color(display-p3_0.195_0.195_0.195)] dark:text-[color(display-p3_0.881_0.881_0.881)]">
-                    expect
-                  </span>
+              <motion.div className="relative h-[200px] w-[225px] rounded-2xl [box-shadow:color(display-p3_1_1_1)_0px_0px_9px_inset,color(display-p3_0_0_0/5%)_0px_0px_0px_1px,color(display-p3_0_0_0/5%)_0px_0px_26px] dark:[box-shadow:color(display-p3_0.08_0.08_0.08)_0px_0px_9px_inset,color(display-p3_1_1_1/6%)_0px_0px_0px_1px,color(display-p3_0_0_0/20%)_0px_0px_26px] sm:h-54.75 sm:w-61.75">
+                <motion.div
+                  className="pointer-events-none absolute inset-0 rounded-2xl bg-[color(display-p3_1_1_1)] dark:bg-[color(display-p3_0.1_0.1_0.1)]"
+                  initial={false}
+                  animate={{ opacity: terminalDragging ? 0.94 : 1 }}
+                  transition={{
+                    duration: 0.16,
+                    ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+                  }}
+                  style={{ willChange: "opacity" }}
+                  aria-hidden="true"
+                />
+                <div className="absolute top-3.5 left-3.5 flex items-start gap-[5.5px] p-0 size-fit">
+                  <div className="rounded-full bg-[#DDDDDD] dark:bg-[#3A3A3A] shrink-0 size-2.5" />
+                  <div className="rounded-full bg-[#DDDDDD] dark:bg-[#3A3A3A] shrink-0 size-2.5" />
+                  <div className="rounded-full bg-[#DDDDDD] dark:bg-[#3A3A3A] shrink-0 size-2.5" />
                 </div>
-                <div className="flex items-center gap-[4px]">
-                  <TerminalStepCheck phase={formTerminalStepPhase} isDark={isDark} />
-                  <TerminalStepLabel complete={terminalFormStepComplete}>
-                    Fill form
-                  </TerminalStepLabel>
-                </div>
-                <div className="mt-[6px] flex items-center gap-[4px]">
-                  <TerminalStepCheck phase={submitTerminalStepPhase} isDark={isDark} />
-                  <TerminalStepLabel complete={terminalSubmitStepComplete}>
-                    Submit form
-                  </TerminalStepLabel>
-                </div>
-                <div className="mt-[6px] flex items-center gap-[4px]">
-                  <TerminalStepCheck
-                    phase={redirectTerminalStepPhase}
-                    successColor={TERMINAL_FAILURE_RED}
-                    successIcon="close"
-                    isDark={isDark}
-                  />
-                  <TerminalStepLabel
-                    complete={terminalRedirectStepComplete}
-                    showStrikeThrough={false}
+                <div className="absolute top-11 left-3.5 flex flex-col items-start">
+                  <div
+                    className={`${berkeleyMonoRegular.className} mb-3 flex items-start gap-1 [letter-spacing:0em] font-bold text-[13px]/4.5`}
                   >
-                    Redirect page
-                  </TerminalStepLabel>
+                    <span className="w-3.75 shrink-0 tracking-[-0.01em] text-[color(display-p3_0.361_0.361_0.361)] dark:text-[color(display-p3_0.588_0.588_0.588)]">
+                      $
+                    </span>
+                    <span className="tracking-[-0.01em] text-[color(display-p3_0.195_0.195_0.195)] dark:text-[color(display-p3_0.881_0.881_0.881)]">
+                      expect
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-[4px]">
+                    <TerminalStepCheck phase={formTerminalStepPhase} isDark={isDark} />
+                    <TerminalStepLabel complete={terminalFormStepComplete}>
+                      Fill form
+                    </TerminalStepLabel>
+                  </div>
+                  <div className="mt-[6px] flex items-center gap-[4px]">
+                    <TerminalStepCheck phase={submitTerminalStepPhase} isDark={isDark} />
+                    <TerminalStepLabel complete={terminalSubmitStepComplete}>
+                      Submit form
+                    </TerminalStepLabel>
+                  </div>
+                  <div className="mt-[6px] flex items-center gap-[4px]">
+                    <TerminalStepCheck
+                      phase={redirectTerminalStepPhase}
+                      successColor={TERMINAL_FAILURE_RED}
+                      successIcon="close"
+                      isDark={isDark}
+                    />
+                    <TerminalStepLabel
+                      complete={terminalRedirectStepComplete}
+                      showStrikeThrough={false}
+                    >
+                      Redirect page
+                    </TerminalStepLabel>
+                  </div>
                 </div>
-              </div>
-              <AnimatePresence initial={false}>
-                {!terminalLabelDismissed ? (
-                  <motion.div
-                    key="terminal-label"
-                    className={`${restartHardRegular.className} absolute left-1/2 top-[calc(100%+6px)] [letter-spacing:0em] text-center text-[color(display-p3_0.469_0.469_0.469)] dark:text-[color(display-p3_0.55_0.55_0.55)] text-[11px]/4.5 size-fit`}
-                    style={{
-                      x: "-50%",
-                      fontVariationSettings: '"CONN" 50, "wght" 400, "ital" 0',
-                      transformOrigin: "center center",
-                    }}
-                    exit={{
-                      opacity: 0,
-                      scale: 0.84,
-                      y: -7,
-                    }}
-                    transition={{
-                      opacity: {
-                        duration: 0.12,
-                        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-                      },
-                      scale: {
-                        duration: 0.18,
-                        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-                      },
-                      y: {
-                        duration: 0.18,
-                        ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
-                      },
-                    }}
-                  >
-                    Expect CLI
-                  </motion.div>
-                ) : null}
-              </AnimatePresence>
-            </motion.div>
+                <AnimatePresence initial={false}>
+                  {!terminalLabelDismissed ? (
+                    <motion.div
+                      key="terminal-label"
+                      className={`${restartHardRegular.className} absolute left-1/2 top-[calc(100%+6px)] [letter-spacing:0em] text-center text-[color(display-p3_0.469_0.469_0.469)] dark:text-[color(display-p3_0.55_0.55_0.55)] text-[11px]/4.5 size-fit`}
+                      style={{
+                        x: "-50%",
+                        fontVariationSettings: '"CONN" 50, "wght" 400, "ital" 0',
+                        transformOrigin: "center center",
+                      }}
+                      exit={{
+                        opacity: 0,
+                        scale: 0.84,
+                        y: -7,
+                      }}
+                      transition={{
+                        opacity: {
+                          duration: 0.12,
+                          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+                        },
+                        scale: {
+                          duration: 0.18,
+                          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+                        },
+                        y: {
+                          duration: 0.18,
+                          ease: [0.22, 1, 0.36, 1] as [number, number, number, number],
+                        },
+                      }}
+                    >
+                      Expect CLI
+                    </motion.div>
+                  ) : null}
+                </AnimatePresence>
+              </motion.div>
             </motion.div>
           </div>
         </div>
       </div>
-      <motion.div {...stagger(1)} className="mt-2 flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none">
+      <motion.div
+        {...stagger(1)}
+        className="mt-2 flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none"
+      >
         <div
           className={`${testSignifierRegular.className} h-fit w-full max-w-77 tracking-[-0.04em] text-black dark:text-[color(display-p3_0.922_0.922_0.922)] text-3xl/9.5 sm:w-77 sm:max-w-none`}
         >
           Let agents test your code in a real browser
         </div>
       </motion.div>
-      <motion.div {...stagger(2)} className="flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none">
-      <Description className="mt-[11px]">
-        One command scans your unstaged changes or branch diff, then generates a test plan, and runs it against a live browser.
-      </Description>
+      <motion.div
+        {...stagger(2)}
+        className="flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none"
+      >
+        <Description className="mt-[11px]">
+          One command scans your unstaged changes or branch diff, then generates a test plan, and
+          runs it against a live browser.
+        </Description>
       </motion.div>
-      <motion.div {...stagger(3)} className="flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none">
+      <motion.div
+        {...stagger(3)}
+        className="flex w-full max-w-82.75 justify-start sm:w-82.75 sm:max-w-none"
+      >
         <div
           className={`${testSignifierRegular.className} mt-12 mb-[0.5px] h-fit w-full max-w-66.75 tracking-[-0.02em] text-black dark:text-[color(display-p3_0.92_0.92_0.92)] text-[18px]/6.25 sm:w-66.75 sm:max-w-none`}
         >
           Installation
         </div>
       </motion.div>
-      <motion.div {...stagger(4)} className="flex w-full max-w-82.75 justify-start pt-2 pb-6 sm:w-82.75 sm:max-w-none">
-      <InstallCommands />
+      <motion.div
+        {...stagger(4)}
+        className="flex w-full max-w-82.75 justify-start pt-2 pb-6 sm:w-82.75 sm:max-w-none"
+      >
+        <InstallCommands />
       </motion.div>
       <div className="grow" />
       <div className="mt-16 mb-8 w-full max-w-82.5 sm:max-w-none flex items-center justify-start sm:justify-center">
@@ -1607,12 +1784,22 @@ export default function Home() {
   );
 }
 
-function ThemeToggle({ theme, setTheme }: { theme: string | undefined; setTheme: (t: string) => void }) {
+function ThemeToggle({
+  theme,
+  setTheme,
+}: {
+  theme: string | undefined;
+  setTheme: (t: string) => void;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const indicatorRef = useRef<HTMLDivElement>(null);
   const hasInitialized = useRef(false);
   const isAnimating = useRef(false);
-  const [indicator, setIndicator] = useState<{ left: number; width: number; height: number } | null>(null);
+  const [indicator, setIndicator] = useState<{
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [playSwitchOff] = useSound(switchOffSound, { volume: 0.1 });
   const [playSwitchOn] = useSound(switchOnSound, { volume: 0.1 });
   const { trigger: haptic } = useWebHaptics();
@@ -1725,16 +1912,17 @@ function ThemeToggle({ theme, setTheme }: { theme: string | undefined; setTheme:
   }, [theme]);
 
   return (
-    <div
-      ref={containerRef}
-      className="size-fit"
-    >
+    <div ref={containerRef} className="size-fit">
       <ToggleGroup
         value={[theme === "dark" ? "dark" : "light"]}
         onValueChange={(value) => {
           const next = value[0];
           if (!next || next === theme) return;
-          if (next === "dark") { playSwitchOff(); } else if (theme === "dark") { playSwitchOn(); }
+          if (next === "dark") {
+            playSwitchOff();
+          } else if (theme === "dark") {
+            playSwitchOn();
+          }
           haptic("soft");
           setTheme(next);
         }}
@@ -1756,9 +1944,27 @@ function ThemeToggle({ theme, setTheme }: { theme: string | undefined; setTheme:
           aria-label="Light mode"
           className={`relative z-10 !rounded-full !p-1.5 sm:!p-1 !h-auto !min-w-0 !bg-transparent !border-0 hover:!bg-transparent aria-pressed:!bg-transparent text-black dark:text-white transition-opacity duration-75 ${theme !== "light" ? "opacity-40 hover:!opacity-80" : ""}`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="none" xmlnsXlink="http://www.w3.org/1999/xlink" className="size-4 sm:size-3.5" style={{ flexShrink: 0 }}>
-            <path d="M17 12C17 14.761 14.761 17 12 17C9.239 17 7 14.761 7 12C7 9.239 9.239 7 12 7C14.761 7 17 9.239 17 12Z" stroke="currentColor" strokeWidth="1.5" />
-            <path d="M12 2V3.5M12 20.5V22M19.071 19.071L18.01 18.011M5.989 5.989L4.929 4.929M22 12H20.5M3.5 12H2M19.071 4.929L18.011 5.989M5.99 18.011L4.929 19.071" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="128"
+            height="128"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlnsXlink="http://www.w3.org/1999/xlink"
+            className="size-4 sm:size-3.5"
+            style={{ flexShrink: 0 }}
+          >
+            <path
+              d="M17 12C17 14.761 14.761 17 12 17C9.239 17 7 14.761 7 12C7 9.239 9.239 7 12 7C14.761 7 17 9.239 17 12Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M12 2V3.5M12 20.5V22M19.071 19.071L18.01 18.011M5.989 5.989L4.929 4.929M22 12H20.5M3.5 12H2M19.071 4.929L18.011 5.989M5.99 18.011L4.929 19.071"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
         </ToggleGroupItem>
         <ToggleGroupItem
@@ -1766,15 +1972,29 @@ function ThemeToggle({ theme, setTheme }: { theme: string | undefined; setTheme:
           aria-label="Dark mode"
           className={`relative z-10 !rounded-full !p-1.5 sm:!p-1 !h-auto !min-w-0 !bg-transparent !border-0 hover:!bg-transparent aria-pressed:!bg-transparent text-black dark:text-white transition-opacity duration-75 ${theme !== "dark" ? "opacity-40 hover:!opacity-80" : ""}`}
         >
-          <svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 24 24" fill="none" xmlnsXlink="http://www.w3.org/1999/xlink" className="size-4 sm:size-3.5" style={{ flexShrink: 0 }}>
-            <path d="M21.5 14.078C20.3 14.719 18.93 15.082 17.475 15.082C12.749 15.082 8.918 11.251 8.918 6.525C8.918 5.07 9.281 3.7 9.922 2.5C5.668 3.497 2.5 7.315 2.5 11.873C2.5 17.19 6.81 21.5 12.127 21.5C16.685 21.5 20.503 18.332 21.5 14.078Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="128"
+            height="128"
+            viewBox="0 0 24 24"
+            fill="none"
+            xmlnsXlink="http://www.w3.org/1999/xlink"
+            className="size-4 sm:size-3.5"
+            style={{ flexShrink: 0 }}
+          >
+            <path
+              d="M21.5 14.078C20.3 14.719 18.93 15.082 17.475 15.082C12.749 15.082 8.918 11.251 8.918 6.525C8.918 5.07 9.281 3.7 9.922 2.5C5.668 3.497 2.5 7.315 2.5 11.873C2.5 17.19 6.81 21.5 12.127 21.5C16.685 21.5 20.503 18.332 21.5 14.078Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
           </svg>
         </ToggleGroupItem>
       </ToggleGroup>
     </div>
   );
 }
-
 
 /**
  * from Paper
@@ -1790,7 +2010,10 @@ function InstallCommands() {
           Add skill
         </div>
       </div>
-      <CommandRow command="npx skills add https://github.com/millionco/expect --skill expect-cli" fade />
+      <CommandRow
+        command="npx skills add https://github.com/millionco/expect --skill expect-cli"
+        fade
+      />
     </div>
   );
 }
@@ -1835,12 +2058,18 @@ function CommandRow({ command, fade }: { command: string; fade?: boolean }) {
           $
         </div>
         <div className="relative min-w-0 overflow-hidden">
-          <div ref={commandRef} onScroll={(e) => setScrolledLeft(e.currentTarget.scrollLeft > 2)} className={`tracking-[-0.01em] text-[color(display-p3_0.195_0.195_0.195)] dark:text-[color(display-p3_0.881_0.881_0.881)] text-[14.5px]/5 sm:text-[12.5px]/4.5 whitespace-nowrap ${fade ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pr-6" : ""}`}>
+          <div
+            ref={commandRef}
+            onScroll={(e) => setScrolledLeft(e.currentTarget.scrollLeft > 2)}
+            className={`tracking-[-0.01em] text-[color(display-p3_0.195_0.195_0.195)] dark:text-[color(display-p3_0.881_0.881_0.881)] text-[14.5px]/5 sm:text-[12.5px]/4.5 whitespace-nowrap ${fade ? "overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden pr-6" : ""}`}
+          >
             {command}
           </div>
           {fade && (
             <>
-              {scrolledLeft && <div className="absolute left-0 top-0 h-full w-6 pointer-events-none z-10 bg-[linear-gradient(to_right,color(display-p3_0.924_0.924_0.924)_0%,color(display-p3_0.924_0.924_0.924/0%)_100%)] dark:bg-[linear-gradient(to_right,color(display-p3_0.135_0.135_0.135)_0%,color(display-p3_0.135_0.135_0.135/0%)_100%)]" />}
+              {scrolledLeft && (
+                <div className="absolute left-0 top-0 h-full w-6 pointer-events-none z-10 bg-[linear-gradient(to_right,color(display-p3_0.924_0.924_0.924)_0%,color(display-p3_0.924_0.924_0.924/0%)_100%)] dark:bg-[linear-gradient(to_right,color(display-p3_0.135_0.135_0.135)_0%,color(display-p3_0.135_0.135_0.135/0%)_100%)]" />
+              )}
               <div className="absolute right-0 top-0 h-full w-12 pointer-events-none z-10 bg-[linear-gradient(to_left,color(display-p3_0.924_0.924_0.924)_0%,color(display-p3_0.924_0.924_0.924/0%)_100%)] dark:bg-[linear-gradient(to_left,color(display-p3_0.135_0.135_0.135)_0%,color(display-p3_0.135_0.135_0.135/0%)_100%)]" />
             </>
           )}
@@ -1867,9 +2096,19 @@ function CommandRow({ command, fade }: { command: string; fade?: boolean }) {
               animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
               exit={{ opacity: 0, scale: 0.6, filter: "blur(4px)" }}
               transition={{ duration: 0.08, ease: [0.25, 0.1, 0.25, 1] }}
-              xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className="text-[#424242] dark:text-[color(display-p3_0.588_0.588_0.588)] size-[17px] sm:size-[15px] shrink-0" fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              className="text-[#424242] dark:text-[color(display-p3_0.588_0.588_0.588)] size-[17px] sm:size-[15px] shrink-0"
+              fill="none"
             >
-              <path fillRule="evenodd" clipRule="evenodd" d="M19.6905 5.77665C20.09 6.15799 20.1047 6.79098 19.7234 7.19048L9.22336 18.1905C9.03745 18.3852 8.78086 18.4968 8.51163 18.4999C8.2424 18.5031 7.98328 18.3975 7.79289 18.2071L4.29289 14.7071C3.90237 14.3166 3.90237 13.6834 4.29289 13.2929C4.68342 12.9024 5.31658 12.9024 5.70711 13.2929L8.48336 16.0692L18.2766 5.80953C18.658 5.41003 19.291 5.39531 19.6905 5.77665Z" fill="currentColor" />
+              <path
+                fillRule="evenodd"
+                clipRule="evenodd"
+                d="M19.6905 5.77665C20.09 6.15799 20.1047 6.79098 19.7234 7.19048L9.22336 18.1905C9.03745 18.3852 8.78086 18.4968 8.51163 18.4999C8.2424 18.5031 7.98328 18.3975 7.79289 18.2071L4.29289 14.7071C3.90237 14.3166 3.90237 13.6834 4.29289 13.2929C4.68342 12.9024 5.31658 12.9024 5.70711 13.2929L8.48336 16.0692L18.2766 5.80953C18.658 5.41003 19.291 5.39531 19.6905 5.77665Z"
+                fill="currentColor"
+              />
             </motion.svg>
           ) : (
             <motion.svg
@@ -1878,7 +2117,16 @@ function CommandRow({ command, fade }: { command: string; fade?: boolean }) {
               animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
               exit={{ opacity: 0, scale: 0.6, filter: "blur(4px)" }}
               transition={{ duration: 0.08, ease: [0.25, 0.1, 0.25, 1] }}
-              xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" className="text-[#424242] dark:text-[color(display-p3_0.588_0.588_0.588)] size-[17px] sm:size-[15px] shrink-0" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              width="24"
+              height="24"
+              className="text-[#424242] dark:text-[color(display-p3_0.588_0.588_0.588)] size-[17px] sm:size-[15px] shrink-0"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
             >
               <path d="M9 15C9 12.172 9 10.757 9.879 9.879C10.757 9 12.172 9 15 9L16 9C18.828 9 20.243 9 21.121 9.879C22 10.757 22 12.172 22 15V16C22 18.828 22 20.243 21.121 21.121C20.243 22 18.828 22 16 22H15C12.172 22 10.757 22 9.879 21.121C9 20.243 9 18.828 9 16L9 15Z" />
               <path d="M17 9C16.997 6.043 16.953 4.511 16.092 3.462C15.926 3.26 15.74 3.074 15.538 2.908C14.431 2 12.787 2 9.5 2C6.213 2 4.569 2 3.462 2.908C3.26 3.074 3.074 3.26 2.908 3.462C2 4.569 2 6.213 2 9.5C2 12.787 2 14.431 2.908 15.538C3.074 15.74 3.26 15.926 3.462 16.092C4.511 16.953 6.043 16.997 9 17" />

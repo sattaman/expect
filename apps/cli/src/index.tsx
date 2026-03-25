@@ -4,8 +4,6 @@ import { render } from "ink";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./components/app";
 import { ALT_SCREEN_OFF, ALT_SCREEN_ON, VERSION } from "./constants";
-import { ThemeProvider } from "./components/theme-context";
-import { loadThemeName } from "./utils/load-theme";
 import { ChangesFor, Git, TestPlanDraft, DraftId } from "@expect/supervisor";
 import { runHeadless } from "./utils/run-test";
 import { runInit } from "./commands/init";
@@ -25,11 +23,16 @@ const DEFAULT_SKIP_PLANNING = true;
 const DEFAULT_INSTRUCTION =
   "Test all changes from main in the browser and verify they work correctly.";
 
+type Target = "unstaged" | "branch" | "changes";
+
+const TARGETS: readonly Target[] = ["unstaged", "branch", "changes"];
+
 interface CommanderOpts {
   message?: string;
   flow?: string;
   yes?: boolean;
   agent?: AgentBackend;
+  target?: Target;
   verbose?: boolean;
 }
 
@@ -41,31 +44,30 @@ const program = new Command()
   .option("-f, --flow <slug>", "reuse a saved flow by its slug")
   .option("-y, --yes", "skip plan review and run immediately")
   .option("-a, --agent <provider>", "agent provider to use (claude or codex)")
+  .option("-t, --target <target>", "what to test: unstaged, branch, or changes", "changes")
   .option("--verbose", "enable verbose logging")
   .addHelpText(
     "after",
     `
 Examples:
-  $ expect                                    open interactive TUI
-  $ expect -m "test the login flow" -y        plan and run immediately
-  $ expect branch -m "verify signup" -y       test all branch changes`,
+  $ expect                                          open interactive TUI
+  $ expect -m "test the login flow" -y              plan and run immediately
+  $ expect --target branch                          test all branch changes
+  $ expect --target unstaged                        test unstaged changes`,
   );
 
 const isHeadless = () => !process.stdin.isTTY;
 
-const renderApp = async (agent: AgentBackend, skipPlanning = DEFAULT_SKIP_PLANNING) => {
+const renderApp = async (agent: AgentBackend) => {
   const sessionStartedAt = Date.now();
-  await trackSessionStarted(skipPlanning);
+  await trackSessionStarted(DEFAULT_SKIP_PLANNING);
 
-  const initialTheme = loadThemeName() ?? undefined;
   process.stdout.write(ALT_SCREEN_ON);
   process.on("exit", () => process.stdout.write(ALT_SCREEN_OFF));
   const instance = render(
     <RegistryProvider initialValues={[[agentProviderAtom, Option.some(agent)]]}>
       <QueryClientProvider client={queryClient}>
-        <ThemeProvider initialTheme={initialTheme}>
-          <App agent={agent} />
-        </ThemeProvider>
+        <App agent={agent} />
       </QueryClientProvider>
     </RegistryProvider>,
   );
@@ -76,10 +78,7 @@ const renderApp = async (agent: AgentBackend, skipPlanning = DEFAULT_SKIP_PLANNI
   process.exit(0);
 };
 
-const resolveChangesFor = async (
-  action: "unstaged" | "branch" | "changes" | "commit",
-  commitHash?: string,
-) => {
+const resolveChangesFor = async (target: Target) => {
   const cwd = process.cwd();
   return Effect.runPromise(
     Effect.gen(function* () {
@@ -87,22 +86,13 @@ const resolveChangesFor = async (
       const mainBranch = yield* git.getMainBranch;
       const currentBranch = yield* git.getCurrentBranch;
 
-      if (action === "commit" && commitHash) {
-        return {
-          changesFor: ChangesFor.makeUnsafe({
-            _tag: "Commit",
-            hash: commitHash,
-          }),
-          currentBranch,
-        };
-      }
-      if (action === "branch") {
+      if (target === "branch") {
         return {
           changesFor: ChangesFor.makeUnsafe({ _tag: "Branch", mainBranch }),
           currentBranch,
         };
       }
-      if (action === "changes") {
+      if (target === "changes") {
         return {
           changesFor: ChangesFor.makeUnsafe({ _tag: "Changes", mainBranch }),
           currentBranch,
@@ -144,12 +134,8 @@ const seedStores = (opts: CommanderOpts, changesFor: ChangesFor, currentBranch: 
   }
 };
 
-const runHeadlessForAction = async (
-  action: "unstaged" | "branch" | "changes" | "commit",
-  opts: CommanderOpts,
-  commitHash?: string,
-) => {
-  const { changesFor } = await resolveChangesFor(action, commitHash);
+const runHeadlessForTarget = async (target: Target, opts: CommanderOpts) => {
+  const { changesFor } = await resolveChangesFor(target);
   return runHeadless({
     changesFor,
     instruction: opts.message ?? DEFAULT_INSTRUCTION,
@@ -158,33 +144,11 @@ const runHeadlessForAction = async (
   });
 };
 
-const runInteractiveForAction = async (
-  action: "unstaged" | "branch" | "changes" | "commit",
-  opts: CommanderOpts,
-  commitHash?: string,
-) => {
-  const { changesFor, currentBranch } = await resolveChangesFor(action, commitHash);
+const runInteractiveForTarget = async (target: Target, opts: CommanderOpts) => {
+  const { changesFor, currentBranch } = await resolveChangesFor(target);
   seedStores(opts, changesFor, currentBranch);
   renderApp(opts.agent ?? "claude");
 };
-
-program
-  .command("unstaged")
-  .description("test current unstaged changes (default)")
-  .action(async () => {
-    const opts = program.opts<CommanderOpts>();
-    if (isHeadless()) return runHeadlessForAction("unstaged", opts);
-    await runInteractiveForAction("unstaged", opts);
-  });
-
-program
-  .command("branch")
-  .description("test full branch diff against main")
-  .action(async () => {
-    const opts = program.opts<CommanderOpts>();
-    if (isHeadless()) return runHeadlessForAction("branch", opts);
-    await runInteractiveForAction("branch", opts);
-  });
 
 program
   .command("init")
@@ -195,12 +159,18 @@ program
 
 program.action(async () => {
   const opts = program.opts<CommanderOpts>();
-  if (isHeadless()) return runHeadlessForAction("changes", opts);
+  const target = opts.target ?? "changes";
 
-  const hasOptions = opts.message || opts.flow || opts.yes;
+  if (!TARGETS.includes(target)) {
+    program.error(`Unknown target: ${target}. Use ${TARGETS.join(", ")}.`);
+  }
 
-  if (hasOptions) {
-    await runInteractiveForAction("changes", opts);
+  if (isHeadless()) return runHeadlessForTarget(target, opts);
+
+  const hasDirectOptions = Boolean(opts.message || opts.flow || opts.yes || opts.target);
+
+  if (hasDirectOptions) {
+    await runInteractiveForTarget(target, opts);
   } else {
     renderApp(opts.agent ?? "claude");
   }

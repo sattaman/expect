@@ -9,7 +9,6 @@ export type Screen = Data.TaggedEnum<{
   CookieSyncConfirm: { plan: TestPlan };
   Testing: { changesFor: ChangesFor; instruction: string; existingPlan?: TestPlan };
   Results: { report: TestReport };
-  Theme: {};
   SavedFlowPicker: {};
 }>;
 export const Screen = Data.taggedEnum<Screen>();

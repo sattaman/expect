@@ -1,11 +1,11 @@
-# expect
+# Expect
 
 [![version](https://img.shields.io/npm/v/expect-cli?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/expect-cli)
 [![downloads](https://img.shields.io/npm/dt/expect-cli.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/expect-cli)
 
 Let agents test your code in a real browser. One command scans your unstaged changes or branch diff, generates a test plan, and runs it against a live browser.
 
-**[Website](https://expect.dev)** | **[See it in action](https://expect.dev)**
+### **[See it in action](https://expect.dev)**
 
 ## Install
 
@@ -13,37 +13,41 @@ Let agents test your code in a real browser. One command scans your unstaged cha
 npx -y expect-cli@latest init
 ```
 
-## Add skill
-
-```bash
-npx skills add https://github.com/millionco/expect --skill expect-cli
-```
-
-## Commands
+## Usage
 
 ```
-Usage: expect [command] [options]
+Usage: expect [options] [command]
 
-Commands:
-  unstaged          test current unstaged changes (default)
-  branch            test full branch diff vs main
-```
-
-## Options
-
-```
 Options:
   -m, --message <instruction>   natural language instruction for what to test
   -f, --flow <slug>             reuse a saved flow by slug
   -y, --yes                     skip plan review, run immediately
-  --base-url <url>              browser base URL
-  --headed                      run browser visibly instead of headless
-  --cookies                     sync cookies from your browser profile
-  --no-cookies                  disable cookie sync
+  -a, --agent <provider>        agent provider to use (claude or codex)
+  -t, --target <target>         what to test: unstaged, branch, or changes (default: changes)
+  --verbose                     enable verbose logging
   -v, --version                 print version
   -h, --help                    display help
+
+Commands:
+  init                          install expect globally and set up skill
+
+Examples:
+  $ expect                                          open interactive TUI
+  $ expect -m "test the login flow" -y              plan and run immediately
+  $ expect --target branch                          test all branch changes
+  $ expect --target unstaged                        test unstaged changes
 ```
 
-## License
+## Resources & Contributing Back
+
+Want to try it out? Check out [our demo](https://expect.dev).
+
+Find a bug? Head over to our [issue tracker](https://github.com/millionco/expect/issues) and we'll do our best to help. We love pull requests, too!
+
+We expect all contributors to abide by the terms of our [Code of Conduct](https://github.com/aidenybai/react-grab/blob/main/.github/CODE_OF_CONDUCT.md).
+
+[**→ Start contributing on GitHub**](https://github.com/aidenybai/react-grab/blob/main/CONTRIBUTING.md)
+
+### License
 
 FSL-1.1-MIT © [Million Software, Inc.](https://million.dev)

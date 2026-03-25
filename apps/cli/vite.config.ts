@@ -1,9 +1,74 @@
 import { createRequire } from "node:module";
+import { readFileSync, realpathSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { defineConfig } from "vite-plus";
 import { reactCompilerPlugin } from "./react-compiler-plugin";
 
 const require = createRequire(import.meta.url);
 const pkg = require("./package.json");
+
+interface ExportEntry {
+  default?: string;
+  import?: string;
+}
+
+const resolveExportFile = (entry: unknown): string | undefined => {
+  if (typeof entry === "string") return entry;
+  const exportEntry = entry as ExportEntry;
+  return exportEntry.default ?? exportEntry.import;
+};
+
+const findPackageDir = (packageName: string): string | undefined => {
+  const searchPaths = require.resolve.paths(packageName);
+  if (!searchPaths) return undefined;
+
+  for (const searchPath of searchPaths) {
+    const candidate = join(searchPath, packageName);
+    try {
+      realpathSync(candidate);
+      return candidate;
+    } catch {
+      continue;
+    }
+  }
+  return undefined;
+};
+
+const distToSource = (distPath: string): string =>
+  distPath
+    .replace(/dist\//, "src/")
+    .replace(/\.mjs$/, ".ts")
+    .replace(/\.d\.mts$/, ".ts");
+
+const resolveExpectSubpaths = (): Record<string, string> => {
+  const alias: Record<string, string> = {};
+  const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
+
+  for (const packageName of Object.keys(allDeps)) {
+    if (!packageName.startsWith("@expect/")) continue;
+
+    const packageDir = findPackageDir(packageName);
+    if (!packageDir) continue;
+
+    const packageJsonPath = join(packageDir, "package.json");
+    const packageJson: { exports?: Record<string, unknown> } = JSON.parse(
+      readFileSync(realpathSync(packageJsonPath), "utf8"),
+    );
+    if (!packageJson.exports) continue;
+
+    for (const subpath of Object.keys(packageJson.exports)) {
+      if (subpath === ".") continue;
+
+      const specifier = `${packageName}/${subpath.slice(2)}`;
+      const file = resolveExportFile(packageJson.exports[subpath]);
+      if (file) {
+        alias[specifier] = join(realpathSync(packageDir), distToSource(file));
+      }
+    }
+  }
+
+  return alias;
+};
 
 export default defineConfig({
   pack: {
@@ -18,6 +83,7 @@ export default defineConfig({
     define: {
       __VERSION__: JSON.stringify(pkg.version),
     },
+    alias: resolveExpectSubpaths(),
     deps: {
       alwaysBundle: [/^@expect\//],
       neverBundle: ["playwright", "playwright-core", "chromium-bidi", "libsql", "ws", "undici"],

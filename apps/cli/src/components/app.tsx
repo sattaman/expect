@@ -7,7 +7,6 @@ import { CookieSyncConfirmScreen } from "./screens/cookie-sync-confirm-screen";
 import { Spinner } from "./ui/spinner";
 import { TestingScreen } from "./screens/testing-screen";
 import { ResultsScreen } from "./screens/results-screen";
-import { ThemePickerScreen } from "./screens/theme-picker-screen";
 import { MainMenu } from "./screens/main-menu-screen";
 import { Modeline } from "./ui/modeline";
 import { useNavigationStore, Screen } from "../stores/use-navigation";
@@ -68,9 +67,6 @@ export const App = ({ agent }: { agent: AgentBackend }) => {
     if (key.ctrl && input === "p" && screen._tag === "Main" && gitState?.isGitRepo) {
       navigateTo(Screen.SelectPr());
     }
-    if (key.ctrl && input === "t") {
-      navigateTo(Screen.Theme());
-    }
   });
 
   if (gitStateLoading || !gitState) {
@@ -93,8 +89,6 @@ export const App = ({ agent }: { agent: AgentBackend }) => {
         );
       case "Results":
         return <ResultsScreen report={screen.report} />;
-      case "Theme":
-        return <ThemePickerScreen />;
       case "SelectPr":
         return <PrPickerScreen />;
       case "ReviewPlan":

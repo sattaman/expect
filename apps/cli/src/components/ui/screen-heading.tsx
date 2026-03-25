@@ -1,5 +1,5 @@
 import { Text } from "ink";
-import { useThemeContext } from "../theme-context";
+import { theme } from "../theme-context";
 import { useStdoutDimensions } from "../../hooks/use-stdout-dimensions";
 import stringWidth from "string-width";
 
@@ -10,8 +10,6 @@ interface ScreenHeadingProps {
 
 export const ScreenHeading = ({ title, subtitle }: ScreenHeadingProps) => {
   const [columns] = useStdoutDimensions();
-  const { theme } = useThemeContext();
-
   const upperTitle = title.toUpperCase();
   const subtitleContent = subtitle ? ` │ ${subtitle}` : "";
   const textWidth = stringWidth(upperTitle) + stringWidth(subtitleContent);

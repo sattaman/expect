@@ -1,6 +1,3 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { THEMES, DEFAULT_DARK_THEME_NAME, type ThemeDefinition } from "../themes";
-
 export interface Colors {
   TEXT: string;
   DIM: string;
@@ -15,56 +12,86 @@ export interface Colors {
   CYAN: string;
 }
 
-const colorsFromTheme = (theme: ThemeDefinition): Colors => ({
-  TEXT: theme.text,
-  DIM: theme.textMuted,
-  GREEN: theme.success,
-  PRIMARY: theme.primary,
-  SELECTION: theme.accent,
-  RED: theme.error,
-  BORDER: theme.border,
-  DIVIDER: theme.borderSubtle,
-  YELLOW: theme.warning,
-  PURPLE: theme.secondary,
-  CYAN: theme.info,
+interface Theme {
+  primary: string;
+  secondary: string;
+  accent: string;
+  error: string;
+  warning: string;
+  success: string;
+  info: string;
+  text: string;
+  textMuted: string;
+  border: string;
+  borderActive: string;
+  borderSubtle: string;
+}
+
+const darkTheme: Theme = {
+  primary: "#FFFFFF",
+  secondary: "#B0B0B0",
+  accent: "#D0D0D0",
+  error: "#E05555",
+  warning: "#CCAA33",
+  success: "#5EA55E",
+  info: "#909090",
+  text: "#E0E0E0",
+  textMuted: "#707070",
+  border: "#505050",
+  borderActive: "#909090",
+  borderSubtle: "#303030",
+};
+
+const lightTheme: Theme = {
+  primary: "#000000",
+  secondary: "#505050",
+  accent: "#404040",
+  error: "#CC3333",
+  warning: "#997700",
+  success: "#2E7D2E",
+  info: "#707070",
+  text: "#1A1A1A",
+  textMuted: "#808080",
+  border: "#C0C0C0",
+  borderActive: "#707070",
+  borderSubtle: "#E0E0E0",
+};
+
+const detectLightTerminal = (): boolean => {
+  const explicit = process.env["EXPECT_THEME"];
+  if (explicit === "light") return true;
+  if (explicit === "dark") return false;
+
+  const colorFgBg = process.env["COLORFGBG"];
+  if (colorFgBg) {
+    const parts = colorFgBg.split(";");
+    const background = Number.parseInt(parts[parts.length - 1] ?? "", 10);
+    if (!Number.isNaN(background)) {
+      return background >= 8;
+    }
+  }
+
+  return false;
+};
+
+const isLight = detectLightTerminal();
+
+export const theme: Theme = isLight ? lightTheme : darkTheme;
+
+const colorsFromTheme = (source: Theme): Colors => ({
+  TEXT: source.text,
+  DIM: source.textMuted,
+  GREEN: source.success,
+  PRIMARY: source.primary,
+  SELECTION: source.accent,
+  RED: source.error,
+  BORDER: source.border,
+  DIVIDER: source.borderSubtle,
+  YELLOW: source.warning,
+  PURPLE: source.secondary,
+  CYAN: source.info,
 });
 
-interface ThemeContextValue {
-  colors: Colors;
-  themeName: string;
-  setTheme: (name: string) => void;
-  theme: ThemeDefinition;
-}
+export const COLORS: Colors = colorsFromTheme(theme);
 
-const ThemeContext = createContext<ThemeContextValue | null>(null);
-
-export const useColors = (): Colors => {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error("useColors must be used within ThemeProvider");
-  return context.colors;
-};
-
-export const useThemeContext = (): ThemeContextValue => {
-  const context = useContext(ThemeContext);
-  if (!context) throw new Error("useThemeContext must be used within ThemeProvider");
-  return context;
-};
-
-interface ThemeProviderProps {
-  children: ReactNode;
-  initialTheme?: string;
-}
-
-export const ThemeProvider = ({ children, initialTheme }: ThemeProviderProps) => {
-  const [themeName, setThemeName] = useState(initialTheme ?? DEFAULT_DARK_THEME_NAME);
-  const resolvedTheme = THEMES[themeName] ?? THEMES[DEFAULT_DARK_THEME_NAME];
-  const colors = colorsFromTheme(resolvedTheme);
-
-  return (
-    <ThemeContext.Provider
-      value={{ colors, themeName, setTheme: setThemeName, theme: resolvedTheme }}
-    >
-      {children}
-    </ThemeContext.Provider>
-  );
-};
+export const useColors = (): Colors => COLORS;

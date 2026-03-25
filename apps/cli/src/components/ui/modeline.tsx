@@ -1,7 +1,7 @@
 import { Box, Text } from "ink";
 import { useStdoutDimensions } from "../../hooks/use-stdout-dimensions";
 import stringWidth from "string-width";
-import { useColors, useThemeContext } from "../theme-context";
+import { useColors, theme } from "../theme-context";
 import { HintBar, HINT_SEPARATOR, type HintSegment } from "./hint-bar";
 import { Option } from "effect";
 import { useNavigationStore, Screen } from "../../stores/use-navigation";
@@ -30,12 +30,6 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
           label: "pick pr",
           cta: true,
           onClick: () => setScreen(Screen.SelectPr()),
-        },
-        {
-          key: "ctrl+t",
-          label: "theme",
-          cta: true,
-          onClick: () => setScreen(Screen.Theme()),
         },
       ];
     }
@@ -160,13 +154,6 @@ const useHintSegments = (screen: Screen): HintSegment[] => {
       });
       return hints;
     }
-    case "Theme":
-      return [
-        { key: "↑↓", label: "nav" },
-        { key: "tab", label: "light/dark" },
-        { key: "esc", label: "cancel", cta: true, onClick: () => setScreen(Screen.Main()) },
-        { key: "enter", label: "select", color: COLORS.PRIMARY, cta: true },
-      ];
     default:
       return [];
   }
@@ -179,7 +166,6 @@ const getHintText = (segments: HintSegment[]): string =>
 
 export const Modeline = () => {
   const [columns] = useStdoutDimensions();
-  const { theme } = useThemeContext();
   const { data: gitState } = useGitState();
   const screen = useNavigationStore((state) => state.screen);
   const segments = useHintSegments(screen);
