@@ -3,6 +3,7 @@ import {
   AcpAdapter,
   AcpClient,
   type AcpProviderUnauthenticatedError,
+  type AcpProviderUsageLimitError,
   type AcpSessionCreateError,
   type AcpStreamError,
   type SessionId,
@@ -20,11 +21,17 @@ export class Agent extends ServiceMap.Service<
       options: AgentStreamOptions,
     ) => Stream.Stream<
       AcpSessionUpdate,
-      AcpStreamError | AcpSessionCreateError | AcpProviderUnauthenticatedError
+      | AcpStreamError
+      | AcpSessionCreateError
+      | AcpProviderUnauthenticatedError
+      | AcpProviderUsageLimitError
     >;
     readonly createSession: (
       cwd: string,
-    ) => Effect.Effect<SessionId, AcpSessionCreateError | AcpProviderUnauthenticatedError>;
+    ) => Effect.Effect<
+      SessionId,
+      AcpSessionCreateError | AcpProviderUnauthenticatedError | AcpProviderUsageLimitError
+    >;
   }
 >()("@expect/Agent") {
   static layerAcp = Layer.effect(Agent)(

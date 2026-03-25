@@ -3,8 +3,8 @@ Rasmus:
 - [x] Improved error surfacing
   - [x] Defects
   - [x] Expected errors
-- Unauthenticated case.
-- Out of usage case
+- [x] Unauthenticated case.
+- [x] Out of usage case
   -- After launch
 - cleanup rrweb PR
 - cleanup browser / mcp code (pretty leaky, lifetimes not handled, interrupts not handled, etc)

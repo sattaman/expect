@@ -1,6 +1,7 @@
 import * as path from "node:path";
 import {
   AcpProviderUnauthenticatedError,
+  AcpProviderUsageLimitError,
   AcpSessionCreateError,
   AcpStreamError,
   Agent,
@@ -32,7 +33,12 @@ import {
 export class ExecutionError extends Schema.ErrorClass<ExecutionError>("@supervisor/ExecutionError")(
   {
     _tag: Schema.tag("ExecutionError"),
-    reason: Schema.Union([AcpStreamError, AcpSessionCreateError, AcpProviderUnauthenticatedError]),
+    reason: Schema.Union([
+      AcpStreamError,
+      AcpSessionCreateError,
+      AcpProviderUnauthenticatedError,
+      AcpProviderUsageLimitError,
+    ]),
   },
 ) {
   displayName = this.reason.displayName ?? `Browser testing failed`;

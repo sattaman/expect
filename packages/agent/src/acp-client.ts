@@ -45,6 +45,16 @@ export class AcpProviderUnauthenticatedError extends Schema.ErrorClass<AcpProvid
   );
 }
 
+export class AcpProviderUsageLimitError extends Schema.ErrorClass<AcpProviderUsageLimitError>(
+  "AcpProviderUsageLimitError",
+)({
+  _tag: Schema.tag("AcpProviderUsageLimitError"),
+  provider: AgentProvider,
+}) {
+  displayName = `Your ${this.provider} agent has exceeded its usage limits`;
+  message = `Usage limits exceeded for ${this.provider}. Please check your plan and billing.`;
+}
+
 export class AcpSessionCreateError extends Schema.ErrorClass<AcpSessionCreateError>(
   "AcpSessionCreateError",
 )({
@@ -231,9 +241,20 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
         catch: (cause) => {
           const message = hasStringMessage(cause) ? cause.message : String(cause);
 
+          /**
+           * @note(rasmus): these are best guesses at the type of errors we might hit
+           * if we're reaching usage limits because couldn't simulate this myself manually
+           */
+          const USAGE_LIMIT_ERRORS = ["out of usage", "limits exceeded", "usage exceeded"];
           const AUTH_ERRORS = ["authentication"];
+
           if (AUTH_ERRORS.some((error) => message.toLowerCase().includes(error))) {
             return new AcpProviderUnauthenticatedError({
+              provider: adapter.provider,
+            });
+          }
+          if (USAGE_LIMIT_ERRORS.some((error) => message.toLowerCase().includes(error))) {
+            return new AcpProviderUsageLimitError({
               provider: adapter.provider,
             });
           }
