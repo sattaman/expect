@@ -2,7 +2,6 @@ Rasmus:
 
 - Unauthenticated case.
 - Out of usage case
-- Dont fucking build packages so that we need to build in order to update and go to defintiion goes to fucking d.ts. files.
 -- After launch
 - cleanup rrweb PR
 - cleanup browser / mcp code (pretty leaky, lifetimes not handled, interrupts not handled, etc)
