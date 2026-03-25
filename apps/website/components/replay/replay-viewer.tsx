@@ -452,7 +452,8 @@ export const ReplayViewer = ({
   };
 
   const totalTime = getReplayDuration(events);
-  const replayStartMs = events.length > 0 ? events[0].timestamp : 0;
+  const replayStartMs =
+    events.length > 0 ? events[0].timestamp : (steps?.steps[0]?.startedAtMs ?? 0);
   const hasEvents = events.length > 1;
   const canPlay = hasEvents;
   const isAtLiveEdge = live && totalTime - currentTime < LIVE_EDGE_THRESHOLD_MS;
