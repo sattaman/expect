@@ -20,7 +20,7 @@ const GLOBAL_INSTALL_COMMANDS: Record<PackageManager, string> = {
   vp: "vp install -g expect-cli@latest",
 };
 
-const SKILL_COMMAND = "npx skills add https://github.com/millionco/expect --skill expect-cli";
+const SKILL_COMMAND = "npx skills add https://github.com/millionco/expect --skill expect";
 
 export { detectAvailableAgents };
 
