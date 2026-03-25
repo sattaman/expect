@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod/v4";
 import { Effect, type ManagedRuntime } from "effect";
+import { evaluateRuntime } from "../utils/evaluate-runtime";
 import { McpSession } from "./mcp-session";
 
 const textResult = (text: string) => ({
@@ -242,6 +243,28 @@ export const createBrowserMcpServer = <E>(
           return entries.length === 0
             ? textResult("No network requests captured.")
             : jsonResult(entries);
+        }),
+      ),
+  );
+
+  server.registerTool(
+    "performance_metrics",
+    {
+      title: "Performance Metrics",
+      description:
+        "Get Core Web Vitals performance metrics (FCP, LCP, CLS, INP) for the current page. Each metric includes a value (milliseconds for FCP/LCP/INP, unitless score for CLS) and a rating (good, needs-improvement, poor). Metrics are collected automatically from page load and user interactions.",
+      annotations: { readOnlyHint: true },
+      inputSchema: {},
+    },
+    () =>
+      runMcp(
+        Effect.gen(function* () {
+          const session = yield* McpSession;
+          const page = yield* session.requirePage();
+          const metrics = yield* evaluateRuntime(page, "getPerformanceMetrics");
+          const hasMetrics = metrics.fcp || metrics.lcp || metrics.inp;
+          if (!hasMetrics) return textResult("No performance metrics available yet.");
+          return jsonResult(metrics);
         }),
       ),
   );

@@ -631,7 +631,6 @@ export default function Home() {
     void element.play().catch(() => {});
   };
 
-
   const firstFieldFocused = useDelayedFlag(
     firstFieldTouched,
     FIRST_FIELD_FOCUS_DELAY_MS,
@@ -746,8 +745,12 @@ export default function Home() {
   const firstFieldInputActive = firstFieldUnlocked || redirectTerminalIndicatorSuccessReady;
   const secondFieldInputActive = secondFieldUnlocked || redirectTerminalIndicatorSuccessReady;
   const displayedFirstFieldValue = firstFieldUnlocked ? editableFirstFieldValue : typedFieldValue;
-  const displayedSecondFieldValue = secondFieldUnlocked ? editableSecondFieldValue : secondTypedFieldValue;
-  const submitPillReady = (secondFieldInputActive ? displayedSecondFieldValue.length : secondTypedFieldLength) >= SECOND_FIELD_SUBMIT_READY_LENGTH;
+  const displayedSecondFieldValue = secondFieldUnlocked
+    ? editableSecondFieldValue
+    : secondTypedFieldValue;
+  const submitPillReady =
+    (secondFieldInputActive ? displayedSecondFieldValue.length : secondTypedFieldLength) >=
+    SECOND_FIELD_SUBMIT_READY_LENGTH;
   const firstFieldVisuallyFocused = firstFieldInputActive
     ? editableFocusedField === "first"
     : firstFieldFocused && !secondFieldFocused;
@@ -807,9 +810,7 @@ export default function Home() {
     const field = pendingFocusFieldRef.current;
     if (!field) return;
     const targetInput =
-      field === "first"
-        ? firstEditableInputRef.current
-        : secondEditableInputRef.current;
+      field === "first" ? firstEditableInputRef.current : secondEditableInputRef.current;
     if (!targetInput) return;
     pendingFocusFieldRef.current = null;
     targetInput.focus();
@@ -1754,28 +1755,44 @@ export default function Home() {
       <div className="grow" />
       <div className="mt-16 mb-8 w-full max-w-82.5 sm:max-w-none flex items-center justify-start sm:justify-center">
         <div className="hidden sm:flex items-center gap-6">
-          <div
+          <a
+            href="https://github.com/millionco/expect"
+            target="_blank"
+            rel="noopener noreferrer"
             className={`${restartHardRegular.className} w-fit h-4.5 [letter-spacing:0em] text-[color(display-p3_0.033_0.033_0.033)] dark:text-[color(display-p3_0.881_0.881_0.881)] text-[13px]/4.5`}
             style={{ fontVariationSettings: '"CONN" 50, "wght" 400, "ital" 0' }}
           >
             GitHub
-          </div>
+          </a>
           <ThemeToggle theme={mounted ? currentTheme : "light"} setTheme={setTheme} />
-          <div
+          <a
+            href="https://x.com/aidenybai"
+            target="_blank"
+            rel="noopener noreferrer"
             className={`${restartHardRegular.className} w-fit h-4.5 [letter-spacing:0em] text-[color(display-p3_0.033_0.033_0.033)] dark:text-[color(display-p3_0.881_0.881_0.881)] text-[13px]/4.5`}
             style={{ fontVariationSettings: '"CONN" 50, "wght" 400, "ital" 0' }}
           >
             X
-          </div>
+          </a>
         </div>
         <div className="flex sm:hidden items-center justify-between w-full">
           <div className="flex items-center gap-6">
-            <div className="tracking-[-0.01em] text-[color(display-p3_0.033_0.033_0.033)] dark:text-[color(display-p3_0.881_0.881_0.881)] font-['ABC_Diatype',system-ui,sans-serif] text-[15px]/5">
+            <a
+              href="https://github.com/millionco/expect"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tracking-[-0.01em] text-[color(display-p3_0.033_0.033_0.033)] dark:text-[color(display-p3_0.881_0.881_0.881)] font-['ABC_Diatype',system-ui,sans-serif] text-[15px]/5"
+            >
               GitHub
-            </div>
-            <div className="tracking-[-0.01em] text-[color(display-p3_0.033_0.033_0.033)] dark:text-[color(display-p3_0.881_0.881_0.881)] font-['ABC_Diatype',system-ui,sans-serif] text-[15px]/5">
+            </a>
+            <a
+              href="https://x.com/aidenybai"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tracking-[-0.01em] text-[color(display-p3_0.033_0.033_0.033)] dark:text-[color(display-p3_0.881_0.881_0.881)] font-['ABC_Diatype',system-ui,sans-serif] text-[15px]/5"
+            >
               X
-            </div>
+            </a>
           </div>
           <ThemeToggle theme={mounted ? currentTheme : "light"} setTheme={setTheme} />
         </div>

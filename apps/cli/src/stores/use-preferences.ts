@@ -7,9 +7,11 @@ import { FLOW_INPUT_HISTORY_LIMIT } from "../constants";
 interface PreferencesStore {
   agentBackend: AgentBackend;
   autoSaveFlows: boolean;
+  notifications: boolean | undefined;
   instructionHistory: string[];
   setAgentBackend: (backend: AgentBackend) => void;
   toggleAutoSave: () => void;
+  toggleNotifications: () => void;
   rememberInstruction: (instruction: string) => void;
 }
 
@@ -18,9 +20,12 @@ export const usePreferencesStore = create<PreferencesStore>()(
     (set) => ({
       agentBackend: "claude",
       autoSaveFlows: true,
+      notifications: undefined,
       instructionHistory: [],
       setAgentBackend: (backend: AgentBackend) => set({ agentBackend: backend }),
       toggleAutoSave: () => set((state) => ({ autoSaveFlows: !state.autoSaveFlows })),
+      toggleNotifications: () =>
+        set((state) => ({ notifications: state.notifications === true ? false : true })),
       rememberInstruction: (instruction) => {
         if (!instruction) return;
         set((state) => ({
@@ -34,7 +39,10 @@ export const usePreferencesStore = create<PreferencesStore>()(
     {
       name: "prompt-history",
       storage: createJSONStorage(() => promptHistoryStorage),
-      partialize: (state) => ({ instructionHistory: state.instructionHistory }),
+      partialize: (state) => ({
+        instructionHistory: state.instructionHistory,
+        notifications: state.notifications,
+      }),
     },
   ),
 );

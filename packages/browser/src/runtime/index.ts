@@ -2,6 +2,152 @@ import { finder } from "@medv/finder";
 import { record } from "rrweb";
 import type { eventWithTime } from "@rrweb/types";
 
+const FCP_GOOD_MS = 1800;
+const FCP_POOR_MS = 3000;
+const LCP_GOOD_MS = 2500;
+const LCP_POOR_MS = 4000;
+const CLS_GOOD = 0.1;
+const CLS_POOR = 0.25;
+const INP_GOOD_MS = 200;
+const INP_POOR_MS = 500;
+const CLS_SESSION_GAP_MS = 1000;
+const CLS_SESSION_CAP_MS = 5000;
+const INP_DURATION_THRESHOLD_MS = 16;
+const CLS_PRECISION_FACTOR = 1000;
+
+interface PerformanceMetricEntry {
+  value: number;
+  rating: string;
+}
+
+interface PerformanceMetricsResult {
+  fcp: PerformanceMetricEntry | null;
+  lcp: PerformanceMetricEntry | null;
+  cls: PerformanceMetricEntry | null;
+  inp: PerformanceMetricEntry | null;
+}
+
+interface EventTimingEntry extends PerformanceEntry {
+  interactionId?: number;
+}
+
+interface LayoutShiftEntry extends PerformanceEntry {
+  hadRecentInput: boolean;
+  value: number;
+}
+
+const performanceState = {
+  fcp: null as number | null,
+  lcp: null as number | null,
+  cls: 0,
+  interactionDurations: new Map<number, number>(),
+};
+
+const THRESHOLDS: Record<string, [number, number]> = {
+  FCP: [FCP_GOOD_MS, FCP_POOR_MS],
+  LCP: [LCP_GOOD_MS, LCP_POOR_MS],
+  CLS: [CLS_GOOD, CLS_POOR],
+  INP: [INP_GOOD_MS, INP_POOR_MS],
+};
+
+const ratePerformanceMetric = (name: string, value: number): string => {
+  const threshold = THRESHOLDS[name];
+  if (!threshold) return "unknown";
+  if (value < threshold[0]) return "good";
+  if (value < threshold[1]) return "needs-improvement";
+  return "poor";
+};
+
+try {
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      if (entry.name === "first-contentful-paint") {
+        performanceState.fcp = entry.startTime;
+      }
+    }
+  }).observe({ type: "paint", buffered: true });
+} catch {}
+
+try {
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      performanceState.lcp = entry.startTime;
+    }
+  }).observe({ type: "largest-contentful-paint", buffered: true });
+} catch {}
+
+try {
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const { interactionId } = entry as EventTimingEntry;
+      if (interactionId && interactionId > 0) {
+        const current = performanceState.interactionDurations.get(interactionId) ?? 0;
+        performanceState.interactionDurations.set(interactionId, Math.max(current, entry.duration));
+      }
+    }
+  }).observe({
+    type: "event",
+    buffered: true,
+    durationThreshold: INP_DURATION_THRESHOLD_MS,
+  } as PerformanceObserverInit);
+} catch {}
+
+try {
+  const sessionEntries: LayoutShiftEntry[] = [];
+  new PerformanceObserver((list) => {
+    for (const entry of list.getEntries()) {
+      const shiftEntry = entry as LayoutShiftEntry;
+      if (shiftEntry.hadRecentInput) continue;
+      sessionEntries.push(shiftEntry);
+    }
+    let maxSessionValue = 0;
+    let currentSessionValue = 0;
+    let currentSessionStart = 0;
+    let previousEntryEnd = 0;
+    for (const entry of sessionEntries) {
+      if (
+        entry.startTime - previousEntryEnd > CLS_SESSION_GAP_MS ||
+        entry.startTime - currentSessionStart > CLS_SESSION_CAP_MS
+      ) {
+        currentSessionValue = 0;
+        currentSessionStart = entry.startTime;
+      }
+      currentSessionValue += entry.value;
+      previousEntryEnd = entry.startTime + entry.duration;
+      if (currentSessionValue > maxSessionValue) {
+        maxSessionValue = currentSessionValue;
+      }
+    }
+    performanceState.cls = maxSessionValue;
+  }).observe({ type: "layout-shift", buffered: true });
+} catch {}
+
+const buildMetric = (name: string, value: number | null): PerformanceMetricEntry | null => {
+  if (value === null) return null;
+  const rounded =
+    name === "CLS"
+      ? Math.round(value * CLS_PRECISION_FACTOR) / CLS_PRECISION_FACTOR
+      : Math.round(value);
+  return { value: rounded, rating: ratePerformanceMetric(name, value) };
+};
+
+export const getPerformanceMetrics = (): PerformanceMetricsResult => {
+  const { fcp, lcp, cls, interactionDurations } = performanceState;
+
+  let inp: number | null = null;
+  if (interactionDurations.size > 0) {
+    const durations = [...interactionDurations.values()].sort((a, b) => b - a);
+    inp = durations[0];
+  }
+
+  return {
+    fcp: buildMetric("FCP", fcp),
+    lcp: buildMetric("LCP", lcp),
+    cls: buildMetric("CLS", cls),
+    inp: buildMetric("INP", inp),
+  };
+};
+
 interface OverlayItem {
   label: number;
   x: number;
