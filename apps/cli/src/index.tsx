@@ -60,6 +60,11 @@ const renderApp = async (agent: AgentBackend) => {
   const sessionStartedAt = Date.now();
   await trackSessionStarted();
 
+  let interrupted = false;
+  process.on("SIGINT", () => {
+    interrupted = true;
+  });
+
   process.stdout.write(ALT_SCREEN_ON);
   process.on("exit", () => process.stdout.write(ALT_SCREEN_OFF));
   const instance = render(
@@ -72,7 +77,9 @@ const renderApp = async (agent: AgentBackend) => {
   setInkInstance(instance);
   await instance.waitUntilExit();
   await flushSession(sessionStartedAt);
-  await playSound();
+  if (!interrupted) {
+    await playSound();
+  }
   process.exit(0);
 };
 
@@ -136,9 +143,10 @@ const runInteractiveForTarget = async (target: Target, opts: CommanderOpts) => {
 
 program
   .command("init")
-  .description("install expect globally and set up skill")
-  .action(async () => {
-    await runInit();
+  .description("set up expect for your coding agent")
+  .option("-y, --yes", "skip confirmation prompts")
+  .action(async (opts: { yes?: boolean }) => {
+    await runInit(opts);
   });
 
 program.action(async () => {
