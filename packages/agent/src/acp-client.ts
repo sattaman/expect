@@ -13,6 +13,7 @@ import {
   Schema,
   ServiceMap,
   Stream,
+  String as Str,
 } from "effect";
 import { AcpSessionUpdate, AgentProvider } from "@expect/shared/models";
 import { hasStringMessage } from "@expect/shared/utils";
@@ -29,6 +30,30 @@ export class AcpStreamError extends Schema.ErrorClass<AcpStreamError>("AcpStream
 }) {
   displayName = `An unexpected error occurred while streaming`;
   message = `Streaming failed: ${this.cause}`;
+}
+
+export class AcpProviderNotInstalledError extends Schema.ErrorClass<AcpProviderNotInstalledError>(
+  "AcpProviderNotInstalledError",
+)({
+  _tag: Schema.tag("AcpProviderNotInstalledError"),
+  provider: AgentProvider,
+}) {
+  displayName = `${Str.capitalize(this.provider)} is not installed`;
+  message = Match.value(this.provider).pipe(
+    Match.when(
+      "claude",
+      () =>
+        "Claude Code is not installed. Install it from https://code.claude.com/docs/en/overview#native-install-recommended, or use codex agent with `expect -a codex`.",
+    ),
+    Match.when(
+      "codex",
+      () =>
+        "Codex CLI is not installed. Install it with `npm install -g @openai/codex`, or use Claude Code by removing the `--agent codex` option.",
+    ),
+    Match.orElse(
+      () => "Your coding agent CLI is not installed. Please install it and then re-run expect.",
+    ),
+  );
 }
 
 export class AcpProviderUnauthenticatedError extends Schema.ErrorClass<AcpProviderUnauthenticatedError>(
@@ -132,6 +157,9 @@ export class AcpAdapter extends ServiceMap.Service<
             : new AcpProviderUnauthenticatedError({
                 provider: "claude",
               }).asEffect(),
+        ),
+        Effect.catchReason("PlatformError", "NotFound", () =>
+          new AcpProviderNotInstalledError({ provider: "claude" }).asEffect(),
         ),
       );
 
