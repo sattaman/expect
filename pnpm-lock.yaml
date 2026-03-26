@@ -87,6 +87,9 @@ importers:
       ora:
         specifier: ^9.3.0
         version: 9.3.0
+      oxc-resolver:
+        specifier: ^11.19.1
+        version: 11.19.1
       picocolors:
         specifier: ^1.1.1
         version: 1.1.1

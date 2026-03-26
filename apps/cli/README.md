@@ -40,15 +40,22 @@ Examples:
   $ expect-cli -m "test the login flow" -y              plan and run immediately
   $ expect-cli --target branch                          test all branch changes
   $ expect-cli --target unstaged                        test unstaged changes
-```
-
-## Disable telemetry
 
 Set `NO_TELEMTRY=1` to disable analytics events.
-
-```bash
-NO_TELEMTRY=1 expect-cli
 ```
+
+## How it works
+
+```
+ ┌─────────────┐     ┌──────────────┐     ┌──────────────┐     ┌─────────┐
+ │ Scan changes│────▶│ Generate plan│────▶│ Run in browser│────▶│ Report  │
+ │ (git diff)  │     │ (AI agent)   │     │ (Playwright)  │     │ (pass/fail)│
+ └─────────────┘     └──────────────┘     └──────────────┘     └─────────┘
+```
+
+Expect reads your unstaged changes or branch diff, sends them to an AI agent (Claude Code or Codex CLI), and generates a step-by-step test plan describing how to validate the changes. You review and approve the plan in an interactive TUI, then the agent executes each step against a live browser — using your real login sessions so there's no manual auth setup. Every session is recorded so you can replay exactly what happened.
+
+Pass `-y` to skip plan review and run headlessly in CI. Exits `0` on success, `1` on failure.
 
 ## Resources & Contributing Back
 

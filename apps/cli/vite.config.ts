@@ -96,7 +96,12 @@ export default defineConfig({
     },
     deps: {
       alwaysBundle: [/^@expect\//],
-      neverBundle: ["playwright", "@zed-industries/claude-agent-acp", "@zed-industries/codex-acp"],
+      neverBundle: [
+        "playwright",
+        "@zed-industries/claude-agent-acp",
+        "@zed-industries/codex-acp",
+        "oxc-resolver",
+      ],
     },
     minify: true,
     plugins: [expectSubpathPlugin(), reactCompilerPlugin()],
