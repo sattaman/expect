@@ -420,6 +420,35 @@ export class McpSession extends ServiceMap.Service<McpSession>()("@browser/McpSe
                 Effect.logDebug("Failed to copy ndjson.js to /tmp", { cause }),
               ),
             );
+
+          const tmpLatestJsonPath = path.join(
+            TMP_ARTIFACT_OUTPUT_DIRECTORY,
+            `${replayBaseName}-latest.json`,
+          );
+          yield* fileSystem
+            .writeFileString(
+              tmpLatestJsonPath,
+              JSON.stringify(activeSession.accumulatedReplayEvents),
+            )
+            .pipe(
+              Effect.catchCause((cause) =>
+                Effect.logDebug("Failed to write latest.json to /tmp", { cause }),
+              ),
+            );
+
+          if (runState) {
+            const tmpStepsJsonPath = path.join(
+              TMP_ARTIFACT_OUTPUT_DIRECTORY,
+              `${replayBaseName}-steps.json`,
+            );
+            yield* fileSystem
+              .writeFileString(tmpStepsJsonPath, JSON.stringify(runState))
+              .pipe(
+                Effect.catchCause((cause) =>
+                  Effect.logDebug("Failed to write steps.json to /tmp", { cause }),
+                ),
+              );
+          }
         }
       }).pipe(
         Effect.catchCause((cause) => Effect.logDebug("Failed during close cleanup", { cause })),
