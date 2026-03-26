@@ -10,7 +10,7 @@ import {
 } from "./acp-client";
 import { AcpSessionUpdate } from "@expect/shared/models";
 import { AgentStreamOptions } from "./types";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 
 export type AgentBackend = "claude" | "codex";
 

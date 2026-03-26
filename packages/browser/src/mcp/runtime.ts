@@ -1,5 +1,5 @@
 import { Layer, Logger, ManagedRuntime } from "effect";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { McpSession } from "./mcp-session";
 
 const StderrLoggerLayer = Layer.succeed(Logger.LogToStderr, true);

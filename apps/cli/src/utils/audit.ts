@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import * as path from "node:path";
 import { Effect, FileSystem } from "effect";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { AUDIT_LINT_KEYWORDS, AUDIT_SCRIPT_TIMEOUT_MS, LOCK_FILE_TO_AGENT } from "../constants";
 
 export interface ScriptResult {

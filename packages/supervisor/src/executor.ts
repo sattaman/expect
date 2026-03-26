@@ -20,7 +20,7 @@ import {
   TestPlan,
 } from "@expect/shared/models";
 import { buildExecutionPrompt } from "@expect/shared/prompts";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Git } from "./git/git";
 import { EXPECT_LIVE_VIEW_URL_ENV_NAME, EXPECT_NO_COOKIES_ENV_NAME } from "@expect/browser/mcp";
 import {

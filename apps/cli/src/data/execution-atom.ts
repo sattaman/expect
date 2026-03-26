@@ -6,7 +6,7 @@ import type { AgentBackend } from "@expect/agent";
 import type { ExecutionEvent, TestReport } from "@expect/shared/models";
 import { cliAtomRuntime } from "./runtime";
 import { stripUndefinedRequirement } from "../utils/strip-undefined-requirement";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { startReplayProxy } from "../utils/replay-proxy-server";
 import { toViewerRunState, pushStepState } from "../utils/push-step-state";
 import { pathToFileURL } from "node:url";

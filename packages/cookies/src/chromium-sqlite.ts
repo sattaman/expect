@@ -7,7 +7,7 @@ import { Effect, Layer, Schema, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
 import { ChildProcess } from "effect/unstable/process";
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { chromiumConfig } from "./browser-config";
 import { deriveKey, decryptAes128Cbc, decryptAes256Gcm } from "./utils/crypto";
 import { normalizeChromiumExpiration, normalizeChromiumSameSite } from "./utils/chromium-normalize";

@@ -1,6 +1,6 @@
 // import * as path from "node:path";
 // import { AcpSessionCreateError, AcpStreamError, Agent, AgentStreamOptions } from "@expect/agent";
-// import { NodeServices } from "@effect/platform-node";
+// import * as NodeServices from "@effect/platform-node/NodeServices";
 // import { Channel, Effect, FileSystem, Layer, Option, Schema, ServiceMap, Stream } from "effect";
 // import { TestPlan, type TestPlanDraft } from "@expect/shared/models";
 // import { EXPECT_STATE_DIR } from "./constants";

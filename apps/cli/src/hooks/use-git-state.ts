@@ -2,7 +2,7 @@ import { Effect, Exit } from "effect";
 import { useQuery } from "@tanstack/react-query";
 import { Git, GitState } from "@expect/supervisor";
 import { GIT_STATE_TIMEOUT_MS } from "../constants";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 
 export type { GitState };
 

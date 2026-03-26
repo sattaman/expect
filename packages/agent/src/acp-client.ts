@@ -18,7 +18,7 @@ import { AcpSessionUpdate, AgentProvider } from "@expect/shared/models";
 import { hasStringMessage } from "@expect/shared/utils";
 
 import { ChildProcess, ChildProcessSpawner } from "effect/unstable/process";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 
 export const SessionId = Schema.String.pipe(Schema.brand("SessionId"));
 export type SessionId = typeof SessionId.Type;

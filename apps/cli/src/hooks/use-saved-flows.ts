@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Effect, Layer } from "effect";
 import { FlowStorage, Git } from "@expect/supervisor";
 import type { SavedFlowFileData } from "@expect/supervisor";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 
 const savedFlowsLayer = Layer.mergeAll(FlowStorage.layer, Git.withRepoRoot(process.cwd()));
 

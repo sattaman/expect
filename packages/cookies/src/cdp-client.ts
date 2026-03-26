@@ -12,7 +12,8 @@ import {
   Duration,
 } from "effect";
 import * as FileSystem from "effect/FileSystem";
-import { NodeHttpClient, NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
+import * as NodeHttpClient from "@effect/platform-node/NodeHttpClient";
 import getPort from "get-port";
 import {
   CpdInvalidResponsePayload,

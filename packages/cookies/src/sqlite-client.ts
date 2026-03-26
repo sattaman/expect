@@ -1,7 +1,7 @@
 import path from "node:path";
 import { Effect, Layer, Scope, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { CookieDatabaseCopyError, CookieReadError } from "./errors";
 
 const IS_BUN = "Bun" in globalThis;

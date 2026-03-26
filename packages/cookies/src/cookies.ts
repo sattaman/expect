@@ -1,7 +1,7 @@
 import path from "node:path";
 import { Effect, Layer, Match, Option, Schema, SchemaGetter, ServiceMap } from "effect";
 import * as FileSystem from "effect/FileSystem";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { CdpClient } from "./cdp-client";
 import { SqliteClient } from "./sqlite-client";
 import { ChromiumSqliteFallback } from "./chromium-sqlite";

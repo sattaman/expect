@@ -5,7 +5,7 @@ import path from "node:path";
 import * as sqlite from "node:sqlite";
 import { assert, describe, it } from "vite-plus/test";
 import { Effect, Layer, Option } from "effect";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 
 import { Cookies } from "../src/cookies";
 import { BROWSER_CONFIGS } from "../src/browser-config";

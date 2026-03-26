@@ -1,6 +1,6 @@
 import * as os from "node:os";
 import { Effect, Layer } from "effect";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Browsers } from "./browser-detector";
 import { ChromiumSource, ChromiumPlatform } from "./chromium";
 import { FirefoxSource, FirefoxPlatform } from "./firefox";

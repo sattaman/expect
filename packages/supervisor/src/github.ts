@@ -1,5 +1,5 @@
 import { Array as Arr, Effect, Layer, Match, Option, Schema, ServiceMap } from "effect";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { ChildProcess } from "effect/unstable/process";
 import { ChildProcessSpawner } from "effect/unstable/process/ChildProcessSpawner";
 import { join } from "node:path";

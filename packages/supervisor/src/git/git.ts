@@ -1,4 +1,4 @@
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, FileSystem, Layer, ServiceMap } from "effect";
 import * as Arr from "effect/Array";
 import * as Str from "effect/String";
