@@ -10,6 +10,7 @@ import { DEMO_TRACE } from "@/lib/demo-trace";
 import { DEMO_EVENTS } from "@/lib/demo-events";
 
 const POLL_INTERVAL_MS = 500;
+const EMPTY_EVENTS: eventWithTime[] = [];
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } },
@@ -45,7 +46,7 @@ const LiveMode = () => {
     refetchInterval: POLL_INTERVAL_MS,
   });
 
-  const events = eventsQuery.data ?? [];
+  const events = eventsQuery.data ?? EMPTY_EVENTS;
   const steps = stepsQuery.data;
   const isRunning = !steps || (steps.status === "running" && !steps.done);
 
@@ -54,7 +55,7 @@ const LiveMode = () => {
     const newEvents = events.slice(prevEventCountRef.current);
     prevEventCountRef.current = events.length;
     addEventsRef.current?.(newEvents);
-  }, [events.length]);
+  }, [events]);
 
   const handleAddEventsRef = (handler: (newEvents: eventWithTime[]) => void) => {
     addEventsRef.current = handler;

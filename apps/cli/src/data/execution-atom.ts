@@ -204,7 +204,7 @@ export const executeFn = cliAtomRuntime.fn<ExecuteInput>()((input, ctx) =>
 
 export const executeAtomFn = cliAtomRuntime.fn(
   Effect.fnUntraced(
-    function* (input: ExecuteInput, ctx: Atom.FnContext) {
+    function* (input: ExecuteInput, _ctx: Atom.FnContext) {
       const reporter = yield* Reporter;
       const executor = yield* Executor;
       const analytics = yield* Analytics;

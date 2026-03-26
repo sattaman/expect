@@ -768,10 +768,10 @@ export class ExecutedTestPlan extends TestPlan.extend<ExecutedTestPlan>(
     }
 
     if (update.sessionUpdate === "tool_call_update") {
-      let current: ExecutedTestPlan = this;
+      let base: ExecutedTestPlan | undefined;
 
       if (update.rawInput !== undefined) {
-        const updatedEvents = [...current.events];
+        const updatedEvents = [...this.events];
         for (let index = updatedEvents.length - 1; index >= 0; index--) {
           const event = updatedEvents[index];
           if (event._tag === "ToolCall" && event.toolName === (update.title ?? "")) {
@@ -782,8 +782,10 @@ export class ExecutedTestPlan extends TestPlan.extend<ExecutedTestPlan>(
             break;
           }
         }
-        current = new ExecutedTestPlan({ ...current, events: updatedEvents });
+        base = new ExecutedTestPlan({ ...this, events: updatedEvents });
       }
+
+      const current = base ?? this;
 
       if (update.status === "completed" || update.status === "failed") {
         return new ExecutedTestPlan({
