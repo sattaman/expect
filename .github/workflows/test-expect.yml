@@ -44,10 +44,10 @@ jobs:
           claude --version
           echo "What is 1+1?" | claude -p --max-turns 1
 
-      - name: Start website dev server
-        run: pnpm --filter @expect/website dev -- --port 3000 &
+      - name: Start website server
+        run: pnpm --filter @expect/website start -- --port 3000 &
 
-      - name: Wait for dev server
+      - name: Wait for server
         run: pnpm dlx wait-on http://localhost:3000 --timeout 30000
 
       - name: Run expect tests
