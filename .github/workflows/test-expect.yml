@@ -52,12 +52,15 @@ jobs:
 
       - name: Run expect tests
         id: expect
+        continue-on-error: true
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
         run: >-
           node apps/cli/dist/index.js --verbose -y -m
           "Test the expect.dev marketing website at http://localhost:3000.
-          Verify the homepage loads, key sections are visible, and navigation works."
+          Verify the homepage loads, key sections are visible, and navigation works.
+          IMPORTANT: Run every test scenario to completion. If a step fails, record the failure
+          with evidence (screenshot or error) but continue testing remaining steps. Do not bail early."
 
       - name: Upload session recording
         if: always()
@@ -76,3 +79,9 @@ jobs:
           else
             echo "No .expect/logs.md file found"
           fi
+
+      - name: Fail if expect tests failed
+        if: steps.expect.outcome == 'failure'
+        run: |
+          echo "::error::expect tests failed — see logs and artifacts above"
+          exit 1
