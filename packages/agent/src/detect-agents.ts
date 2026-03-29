@@ -9,34 +9,19 @@ export type SupportedAgent =
   | "opencode"
   | "droid";
 
-const SUPPORTED_AGENTS: readonly SupportedAgent[] = [
-  "claude",
-  "codex",
-  "copilot",
-  "gemini",
-  "cursor",
-  "opencode",
-  "droid",
-];
+interface AgentMeta {
+  readonly binary: string;
+  readonly skillsCliName: string;
+}
 
-const AGENT_BINARY_NAMES: Record<SupportedAgent, string> = {
-  claude: "claude",
-  codex: "codex",
-  copilot: "copilot",
-  gemini: "gemini",
-  cursor: "agent",
-  opencode: "opencode",
-  droid: "droid",
-};
-
-export const AGENT_SKILLS_CLI_NAMES: Record<SupportedAgent, string> = {
-  claude: "claude-code",
-  codex: "codex",
-  copilot: "github-copilot",
-  gemini: "gemini-cli",
-  cursor: "cursor",
-  opencode: "opencode",
-  droid: "droid",
+const SUPPORTED_AGENTS: Record<SupportedAgent, AgentMeta> = {
+  claude: { binary: "claude", skillsCliName: "claude-code" },
+  codex: { binary: "codex", skillsCliName: "codex" },
+  copilot: { binary: "copilot", skillsCliName: "github-copilot" },
+  gemini: { binary: "gemini", skillsCliName: "gemini-cli" },
+  cursor: { binary: "agent", skillsCliName: "cursor" },
+  opencode: { binary: "opencode", skillsCliName: "opencode" },
+  droid: { binary: "droid", skillsCliName: "droid" },
 };
 
 const WHICH_COMMAND = process.platform === "win32" ? "where" : "/usr/bin/which";
@@ -51,4 +36,9 @@ const isCommandAvailable = (command: string): boolean => {
 };
 
 export const detectAvailableAgents = (): SupportedAgent[] =>
-  SUPPORTED_AGENTS.filter((agent) => isCommandAvailable(AGENT_BINARY_NAMES[agent]));
+  (Object.keys(SUPPORTED_AGENTS) as SupportedAgent[]).filter((agent) =>
+    isCommandAvailable(SUPPORTED_AGENTS[agent].binary),
+  );
+
+export const toSkillsCliName = (agent: SupportedAgent): string =>
+  SUPPORTED_AGENTS[agent].skillsCliName;

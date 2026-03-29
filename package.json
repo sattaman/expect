@@ -15,8 +15,7 @@
     "test": "turbo test",
     "changeset": "changeset",
     "version": "changeset version",
-    "release": "pnpm build && changeset publish",
-    "skills:install": "bash scripts/install-skills.sh"
+    "release": "pnpm build && changeset publish"
   },
   "devDependencies": {
     "@changesets/cli": "^2.27.0",

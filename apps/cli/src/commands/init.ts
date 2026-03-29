@@ -90,7 +90,7 @@ export const runInit = async (options: InitOptions = {}) => {
 
   logger.break();
 
-  await runAddSkill({ yes: options.yes });
+  await runAddSkill({ yes: options.yes, agents: availableAgents });
 
   logger.break();
 

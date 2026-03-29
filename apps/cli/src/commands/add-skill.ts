@@ -1,14 +1,22 @@
+import { type SupportedAgent } from "@expect/agent";
 import { highlighter } from "../utils/highlighter";
 import { logger } from "../utils/logger";
 import { prompts } from "../utils/prompts";
 import { spinner } from "../utils/spinner";
-import { detectNonInteractive, detectPackageManager, SKILL_COMMANDS, tryRun } from "./init-utils";
+import {
+  buildSkillCommand,
+  detectNonInteractive,
+  detectPackageManager,
+  removeSkillsLock,
+  tryRun,
+} from "./init-utils";
 
 interface AddSkillOptions {
   yes?: boolean;
+  agents: readonly SupportedAgent[];
 }
 
-export const runAddSkill = async (options: AddSkillOptions = {}) => {
+export const runAddSkill = async (options: AddSkillOptions) => {
   const nonInteractive = detectNonInteractive(options.yes ?? false);
   const packageManager = detectPackageManager();
 
@@ -25,9 +33,10 @@ export const runAddSkill = async (options: AddSkillOptions = {}) => {
   }
 
   if (installSkill) {
-    const skillCommand = SKILL_COMMANDS[packageManager];
+    const skillCommand = buildSkillCommand(packageManager, options.agents);
     const skillSpinner = spinner("Installing skill...").start();
     const skillSuccess = await tryRun(skillCommand);
+    removeSkillsLock();
 
     if (skillSuccess) {
       skillSpinner.succeed("Skill installed.");

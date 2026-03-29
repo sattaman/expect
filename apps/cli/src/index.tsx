@@ -12,7 +12,7 @@ import { runAddSkill } from "./commands/add-skill";
 import { runAuditCommand } from "./commands/audit";
 import { isRunningInAgent } from "./utils/is-running-in-agent";
 import { isHeadless } from "./utils/is-headless";
-import type { AgentBackend } from "@expect/agent";
+import { type AgentBackend, detectAvailableAgents } from "@expect/agent";
 import { useNavigationStore, Screen } from "./stores/use-navigation";
 import { usePreferencesStore } from "./stores/use-preferences";
 import { queryClient } from "./query-client";
@@ -188,7 +188,8 @@ addCommand
   .description("install the expect skill for your coding agent")
   .option("-y, --yes", "skip confirmation prompts")
   .action(async (opts: { yes?: boolean }) => {
-    await runAddSkill(opts);
+    const agents = detectAvailableAgents();
+    await runAddSkill({ ...opts, agents });
   });
 
 program
