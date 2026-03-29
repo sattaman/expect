@@ -125,7 +125,73 @@ export class Github extends ServiceMap.Service<Github>()("@supervisor/GitHub", {
       );
     });
 
-    return { findPullRequest, listPullRequests, addComment } as const;
+    const findComment = Effect.fn("GitHub.findComment")(function* (
+      cwd: string,
+      prNumber: number,
+      marker: string,
+    ) {
+      yield* Effect.annotateCurrentSpan({ prNumber, marker });
+      const escapedMarker = marker.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+      const output = yield* runGhCommand(cwd, [
+        "api",
+        `repos/{owner}/{repo}/issues/${prNumber}/comments`,
+        "--paginate",
+        "--jq",
+        `.[] | select(.body | contains("${escapedMarker}")) | .id`,
+      ]);
+      const firstLine = output.trim().split("\n")[0] ?? "";
+      const parsed = Number(firstLine);
+      return firstLine.length > 0 && !Number.isNaN(parsed) ? Option.some(parsed) : Option.none();
+    });
+
+    const updateComment = Effect.fn("GitHub.updateComment")(function* (
+      cwd: string,
+      commentId: number,
+      body: string,
+    ) {
+      yield* Effect.annotateCurrentSpan({ commentId });
+      yield* Effect.scoped(
+        Effect.gen(function* () {
+          const dir = yield* fileSystem.makeTempDirectoryScoped({
+            prefix: COMMENT_DIRECTORY_PREFIX,
+          });
+          const bodyPath = join(dir, "pull-request-comment.json");
+          yield* fileSystem.writeFileString(bodyPath, JSON.stringify({ body }));
+          yield* runGhCommand(cwd, [
+            "api",
+            `repos/{owner}/{repo}/issues/comments/${commentId}`,
+            "-X",
+            "PATCH",
+            "--input",
+            bodyPath,
+          ]);
+        }),
+      );
+    });
+
+    const upsertComment = Effect.fn("GitHub.upsertComment")(function* (
+      cwd: string,
+      pullRequest: PullRequest,
+      marker: string,
+      body: string,
+    ) {
+      yield* Effect.annotateCurrentSpan({ prNumber: pullRequest.number, marker });
+      const existingId = yield* findComment(cwd, pullRequest.number, marker);
+      yield* Option.match(existingId, {
+        onNone: () => addComment(cwd, pullRequest, body),
+        onSome: (commentId) => updateComment(cwd, commentId, body),
+      });
+      yield* Effect.logInfo("PR comment upserted", { prNumber: pullRequest.number });
+    });
+
+    return {
+      findPullRequest,
+      listPullRequests,
+      addComment,
+      findComment,
+      updateComment,
+      upsertComment,
+    } as const;
   }),
 }) {
   static layer = Layer.effect(this)(this.make).pipe(Layer.provide(NodeServices.layer));
