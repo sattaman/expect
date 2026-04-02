@@ -7,7 +7,7 @@
 
 - Run `/expect` inside Claude Code, Codex, [and more](https://github.com/millionco/expect#supported-agents)
 - Spawns agents to simulating real logged-in users to find issues and regressions.
-- No more writing Playwright by hand or token-hungry computer use tools.
+- No more writing Playwright by hand or token-hungry computer use tools. <!-- needs proof -->
 - Get video recordings and GitHub Actions out of the box.
 
 ### **[Demo →](https://expect.dev)**
