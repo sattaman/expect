@@ -1,5 +1,6 @@
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { detectAvailableAgents } from "@expect/agent";
+import { isCommandAvailable } from "@expect/shared/is-command-available";
 import { Effect } from "effect";
 import figures from "figures";
 import pc from "picocolors";
@@ -111,9 +112,26 @@ export const runInit = async (options: InitOptions = {}) => {
   const globalSuccess = await tryRun(installCommand);
 
   if (globalSuccess) {
-    globalSpinner.succeed(
-      `Installed! ${highlighter.info("expect-cli")} is now available globally.`,
-    );
+    if (isCommandAvailable("expect-cli")) {
+      globalSpinner.succeed(
+        `Installed! ${highlighter.info("expect-cli")} is now available globally.`,
+      );
+    } else {
+      globalSpinner.warn(
+        `Installed, but ${highlighter.info("expect-cli")} is not on your PATH.`,
+      );
+      const globalPrefix = spawnSync("npm", ["prefix", "-g"], {
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "ignore"],
+      }).stdout?.trim();
+      if (globalPrefix) {
+        logger.dim(
+          `  Add ${highlighter.info(`${globalPrefix}/bin`)} to your PATH, or use ${highlighter.info("npx expect-cli")} instead.`,
+        );
+      } else {
+        logger.dim(`  Use ${highlighter.info("npx expect-cli")} instead.`);
+      }
+    }
   } else {
     globalSpinner.fail("Failed to install globally.");
     logger.dim(`  Run manually: ${highlighter.info(installCommand)}`);

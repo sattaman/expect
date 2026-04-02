@@ -7,6 +7,7 @@ import {
   GH_CLI_DETECT_TIMEOUT_MS,
   GH_SECRET_SET_TIMEOUT_MS,
   GIT_REMOTE_TIMEOUT_MS,
+  GLOBAL_INSTALL_TIMEOUT_MS,
   type PackageManager,
 } from "../constants";
 
@@ -87,14 +88,12 @@ export const isGithubCliAuthenticated = Effect.try({
   ),
 );
 
-const INSTALL_TIMEOUT_MS = 60_000;
-
 export const tryRun = (command: string): Promise<boolean> =>
   new Promise((resolve) => {
-    const child = spawn(command, {
-      shell: true,
+    const [binary, ...args] = command.split(" ");
+    const child = spawn(binary, args, {
       stdio: "ignore",
-      timeout: INSTALL_TIMEOUT_MS,
+      timeout: GLOBAL_INSTALL_TIMEOUT_MS,
     });
     child.on("close", (code) => {
       resolve(code === 0);
