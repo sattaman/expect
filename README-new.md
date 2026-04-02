@@ -23,7 +23,7 @@ This will guide you through a setup process. Once installed, you can run `/expec
 
 ## FAQ
 
-#### How is this different from Puppeteer/Playwright/Cypress?
+#### How is this different from Puppeteer / Playwright / Cypress?
 
 Before Expect: you wrote Playwright/Cypress scripts by hand, maintained selectors, and wired up assertions yourself.
 
@@ -33,7 +33,7 @@ After Expect: Expect reads your code changes, generates a test plan in plain Eng
 
 For longer tasks, your agent needs to verify its work and get feedback. Expect acts like an expert QA tester — it opens a real browser, checks what the agent built, and reports back what's broken so the agent can fix it.
 
-#### How is this different from computer use / `agent-browser` / Claude in Chrome?
+#### How is this different from computer use / agent-browser / Claude in Chrome?
 
 Those tools give your agent general-purpose browser access via screenshots and mouse coordinates. Expect is purpose-built for testing — it uses Playwright for fast DOM automation, reads your code changes, generates a test plan, and runs it with your real cookies.
 
@@ -44,6 +44,14 @@ Your coding agent calls `/expect` as a skill whenever it needs to validate its w
 #### Does it work in CI?
 
 Yes. Use `--ci` or the `add github-action` command to set up a workflow that tests every PR. In CI mode it runs headless, skips cookie extraction, auto-approves the plan, and enforces a 30-minute timeout.
+
+#### Can this do mobile testing?
+
+Coming soon.
+
+#### Can this test desktop apps?
+
+Coming soon.
 
 #### Is there a cloud or enterprise version?
 
