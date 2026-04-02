@@ -9,7 +9,7 @@
 - Spawns agents to simulating real logged-in users to find issues and regressions.
 - No more writing Playwright by hand + get video recordings and GitHub Action out of the box.
 
-### **[See it in action →](https://expect.dev)**
+### **[See it →](https://expect.dev)**
 
 ## Install
 
