@@ -7,28 +7,11 @@ Give your agent a browser.
 
 **Expect** tests your app so you don't have to. Works with Claude Code, Codex, [and more](https://github.com/millionco/expect#supported-agents)
 
-**Catch regressions before your users do.**
-
-- Point it at a branch, unstaged changes, or the full app. Expect figures out what to test.
-- Spins up QA agents that validate design, functionality, accessibility, and performance in a real browser.
-
-**Test like a real user, not a script.**
-
-- Drop-in skill for your existing agent. Nothing new to learn, no separate tool to context-switch into.
-- Authenticated sessions using cookies from your actual browser. No mock logins.
-- Seed test data so every run starts from a known state.
-
-**Get a video recording of every test run.**
-
-- Watch exactly what the agent did, every click, every navigation, so you can verify results instead of trusting a text summary.
-- Recordings replace expensive screenshot loops, keeping token usage low while giving you full visibility.
-
-**Zero test files to write or maintain.**
-
-- No Playwright scripts, no brittle selectors, no fixture boilerplate. Describe what to test in plain English and Expect handles the rest.
-- Tests are generated from your code changes and thrown away after each run. Nothing to keep in sync as your app evolves.
-
-- **Add to your CI**: Add the GitHub Action and every pull request gets browser-tested before merge.
+- **Catch regressions before your users do.** Point it at a branch, unstaged changes, or the full app — Expect figures out what to test and validates it in a real browser.
+- **Test like a real user, not a script.** Authenticated sessions using your actual browser cookies. Seed test data so every run starts from a known state.
+- **Video recording of every run.** Watch every click and navigation instead of trusting a text summary. Replaces expensive screenshot loops.
+- **Zero test files to maintain.** Describe what to test in plain English. Tests are generated from your changes and thrown away after each run.
+- **CI ready.** Add the GitHub Action and every PR gets browser-tested before merge.
 
 ### **[See it in action →](https://expect.dev)**
 
