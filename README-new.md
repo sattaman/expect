@@ -8,54 +8,40 @@ Give your agent a browser.
 **Expect** tests your app so you don't have to. Works with Claude Code, Codex, [and more](https://github.com/millionco/expect#supported-agents)
 
 - Run `/expect` inside Claude Code or Codex.
-- Validates your unstaged changes or branch in a real browser.
-- Simulates real user behavior (clicks, navigates, and submits forms) with cookies from your actual browser.
+- Spawns agents to simulating real logged-in users to find issues and regressions.
 - No more writing Playwright by hand + get video recordings and GitHub Action out of the box.
 
 ### **[See it in action →](https://expect.dev)**
 
 ## Install
 
+Open a terminal in your project directory and run:
+
 ```bash
-# Install the Skill + CLI
 npx expect-cli@latest init
 ```
 
-Then open Claude Code/Codex and run `/expect`.
+This will guide you through a setup process. Once installed, you can run `/expect` inside Claude Code or Codex to start testing.
 
 ## FAQ
 
 **How is this different from Puppeteer/Playwright/Cypress?**
 
-simplify
+Before Expect: you wrote Playwright/Cypress scripts by hand, maintained selectors, and wired up assertions yourself.
 
-Pre AI:
+After Expect: Expect reads your code changes, generates a test plan in plain English, and runs it in a real browser. You never write a test file.
 
-Post AI:
+**How is this different from my coding agent testing?**
 
-Expect harness is good at .. vp
+For longer tasks, your agent needs to verify its work and get feedback. Expect acts like an expert QA tester — it opens a real browser, checks what the agent built, and reports back what's broken so the agent can fix it.
 
-Those are libraries. You write test scripts by hand, maintain selectors, and wire up assertions yourself. Expect reads your code changes, generates a test plan in plain English, and executes it in a real browser. You never write a test file. Think of it as the difference between writing SQL by hand and asking a question in natural language. (ass)
+**How is this different from computer use / `agent-browser` / Claude in Chrome?**
 
-**Is this just visual regression testing?**
-
-No. Expect drives the browser like a real user (clicking, typing, navigating, submitting forms) and verifies behavior, not just screenshots. It can catch broken auth flows, form validation bugs, missing error states, and accessibility issues that pixel-diffing tools miss entirely.
-
-**Why a CLI and not just a markdown skill file?**
-
-Expect installs a skill file too, that's how your agent knows to call it. But a skill file alone can only give the agent instructions. It can't launch a browser, inject cookies from your real login session, record the session for replay, or run headless in CI. The CLI is the runtime behind the skill that handles browser orchestration, cookie extraction, session recording, and result reporting.
-
-**Is this computer use / Browser Use?**
-
-It's the same idea (an AI agent driving a browser) but purpose-built for testing. General-purpose computer use tools control your entire desktop with screenshots and mouse coordinates, burning tokens on every pixel. Expect uses Playwright under the hood for fast, precise DOM automation, scoped to validating your code changes. That makes it cheaper, faster, and more reliable than pointing a generic computer use agent at your app.
+Those tools give your agent general-purpose browser access via screenshots and mouse coordinates. Expect is purpose-built for testing — it uses Playwright for fast DOM automation, reads your code changes, generates a test plan, and runs it with your real cookies.
 
 **When does it run? How does it fit into my workflow?**
 
 Your coding agent calls `/expect` as a skill whenever it needs to validate its work in a real browser. You can also trigger it from CI by adding the GitHub Action to test every PR automatically before merge.
-
-**Can't my coding agent already test things itself?**
-
-Your agent can read code and run terminal commands, but it can't open a browser, navigate your app, or see what your users see. Expect gives the agent real DOM interaction, authenticated sessions with your actual cookies, and a video recording of exactly what happened.
 
 **Does it work in CI?**
 
