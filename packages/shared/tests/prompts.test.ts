@@ -203,15 +203,28 @@ describe("buildExecutionPrompt", () => {
     const prompt = buildExecutionSystemPrompt();
     const changeAnalysis = prompt.indexOf("<change_analysis>");
     const executionStrategy = prompt.indexOf("<execution_strategy>");
+    const dataSeeding = prompt.indexOf("<data_seeding>");
     const uiQuality = prompt.indexOf("<ui_quality_rules>");
     const tools = prompt.indexOf("<tools");
     const statusMarkers = prompt.indexOf("<status_markers>");
     const runCompletion = prompt.indexOf("<run_completion>");
     expect(changeAnalysis).toBeLessThan(executionStrategy);
-    expect(executionStrategy).toBeLessThan(uiQuality);
+    expect(executionStrategy).toBeLessThan(dataSeeding);
+    expect(dataSeeding).toBeLessThan(uiQuality);
     expect(uiQuality).toBeLessThan(tools);
     expect(tools).toBeLessThan(statusMarkers);
     expect(statusMarkers).toBeLessThan(runCompletion);
+  });
+
+  it("includes data seeding section with adversarial test values", () => {
+    const prompt = buildExecutionSystemPrompt();
+    expect(prompt).toContain("<data_seeding>");
+    expect(prompt).toContain("MUST have real data");
+    expect(prompt).toContain("MINIMUM 3 records");
+    expect(prompt).toContain("Günther Müller-Lüdenscheid");
+    expect(prompt).toContain("[Setup]");
+    expect(prompt).toContain("<script>alert(1)</script>");
+    expect(prompt).toContain("empty state renders correctly");
   });
 
   it("includes assertion depth guidance in execution strategy", () => {
