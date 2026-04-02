@@ -3,29 +3,32 @@
 [![version](https://img.shields.io/npm/v/expect-cli?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/expect-cli)
 [![downloads](https://img.shields.io/npm/dt/expect-cli.svg?style=flat&colorA=000000&colorB=000000)](https://npmjs.com/package/expect-cli)
 
-Give your coding agent a browser.
+Give your agent a browser.
 
-Expect tests your app so you don't have to. Works with Claude Code, Codex CLI, and Cursor.
+**Expect** tests your app so you don't have to. Works with Claude Code, Codex, [and more](https://github.com/millionco/expect#supported-agents)
 
 **Catch regressions before your users do.**
 
-- Your agent reads the diff, generates a test plan, and runs it against your app in a real browser.
+- Point it at a branch, unstaged changes, or the full app — Expect figures out what to test.
+- Spins up QA agents that validate design, functionality, accessibility, and performance in a real browser.
 
-**Test with your real login sessions.**
+**Test like a real user, not a script.**
 
-- Expect extracts cookies from Chrome, Firefox, and Safari so tests run as you (not as a logged-out stranger).
+- Drop-in skill for your existing agent — nothing new to learn, no separate tool to context-switch into.
+- Authenticated sessions using cookies from your actual browser — no mock logins.
+- Seed test data so every run starts from a known state.
 
 **Get a video recording of every test run.**
 
-- See exactly what happened, share it with your team (no "works on my machine").
+- Watch exactly what the agent did — every click, every navigation — so you can verify results instead of trusting a text summary.
+- Recordings replace expensive screenshot loops, keeping token usage low while giving you full visibility.
 
 **Zero test files to write or maintain.**
 
-- No selectors, no assertions, no test framework. Describe what to test in plain English.
+- No Playwright scripts, no brittle selectors, no fixture boilerplate. Describe what to test in plain English and Expect handles the rest.
+- Tests are generated from your code changes and thrown away after each run — nothing to keep in sync as your app evolves.
 
-**Run on every PR in CI.**
-
-- Add the GitHub Action and every pull request gets browser-tested automatically before merge (no manual setup).
+- **Add to your CI**: Add the GitHub Action and every pull request gets browser-tested before merge.
 
 ### **[See it in action →](https://expect.dev)**
 
