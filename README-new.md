@@ -7,11 +7,10 @@ Give your agent a browser.
 
 **Expect** tests your app so you don't have to. Works with Claude Code, Codex, [and more](https://github.com/millionco/expect#supported-agents)
 
-- Point it at a branch or unstaged changes and Expect validates them in a real browser.
-- Authenticated sessions using cookies from your actual browser.
-- Video recording of every click and navigation.
-- Zero test files — describe what to test in plain English.
-- Add the GitHub Action to browser-test every PR before merge.
+- Run `/expect` inside Claude Code or Codex.
+- Validates your unstaged changes or branch in a real browser.
+- Simulates real user behavior (clicks, navigates, and submits forms) with cookies from your actual browser.
+- No more writing Playwright by hand + get video recordings and GitHub Action out of the box.
 
 ### **[See it in action →](https://expect.dev)**
 
@@ -28,7 +27,15 @@ Then open Claude Code/Codex and run `/expect`.
 
 **How is this different from Puppeteer/Playwright/Cypress?**
 
-Those are libraries. You write test scripts by hand, maintain selectors, and wire up assertions yourself. Expect reads your code changes, generates a test plan in plain English, and executes it in a real browser. You never write a test file. Think of it as the difference between writing SQL by hand and asking a question in natural language.
+simplify
+
+Pre AI:
+
+Post AI:
+
+Expect harness is good at .. vp
+
+Those are libraries. You write test scripts by hand, maintain selectors, and wire up assertions yourself. Expect reads your code changes, generates a test plan in plain English, and executes it in a real browser. You never write a test file. Think of it as the difference between writing SQL by hand and asking a question in natural language. (ass)
 
 **Is this just visual regression testing?**
 
