@@ -1,13 +1,13 @@
 {
   "name": "expect-sdk",
   "version": "0.0.24",
-  "publishConfig": {
-    "tag": "alpha"
-  },
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
     "./effect": "./src/effect.ts"
+  },
+  "publishConfig": {
+    "tag": "alpha"
   },
   "scripts": {
     "lint": "vp lint && tsc --noEmit",
