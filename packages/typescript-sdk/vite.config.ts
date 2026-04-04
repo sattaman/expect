@@ -6,6 +6,9 @@ export default defineConfig({
     format: ["esm"],
     dts: true,
     sourcemap: true,
+    deps: {
+      alwaysBundle: [/@expect\//],
+    },
   },
   test: {
     include: ["tests/**/*.test.ts"],
