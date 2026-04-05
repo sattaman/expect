@@ -1,5 +1,7 @@
 # Publishing Guide
 
+> **Agents**: Do NOT create changesets, bump versions, or publish packages unless a human explicitly asks you to. This guide is for reference only.
+
 This repo uses [Changesets](https://github.com/changesets/changesets) for versioning and publishing. Releases are fully automated via GitHub Actions with npm Trusted Publishing (OIDC — no tokens stored).
 
 ## Published packages
