@@ -182,7 +182,7 @@ const executeCore = (input: ExecuteInput) =>
       localReplayUrl: artifacts.localReplayUrl,
       videoUrl: artifacts.videoUrl,
     } satisfies ExecutionResult;
-  });
+  }).pipe(Effect.withSpan("expect.session"));
 
 export const executeFn = cliAtomRuntime.fn<ExecuteInput>()((input) =>
   stripUndefinedRequirement(executeCore(input).pipe(Effect.annotateLogs({ fn: "executeFn" }))).pipe(
