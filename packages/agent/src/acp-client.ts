@@ -504,6 +504,7 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
       SessionId,
       Queue.Queue<AcpSessionUpdate, SessionQueueError>
     >();
+    const pendingUpdatesBuffer = new Map<string, AcpSessionUpdate[]>();
 
     const AUTH_FAILURE_PATTERNS = [
       "invalid api key",
@@ -541,11 +542,15 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
           },
         }),
       sessionUpdate: async ({ sessionId, update }) => {
-        const updatesQueue = sessionUpdatesMap.get(SessionId.makeUnsafe(sessionId));
-        if (updatesQueue === undefined)
-          return console.warn(`updates queue not found for session ${sessionId}`);
         try {
           const decoded = Schema.decodeUnknownSync(AcpSessionUpdate)(update);
+          const updatesQueue = sessionUpdatesMap.get(SessionId.makeUnsafe(sessionId));
+          if (updatesQueue === undefined) {
+            const pending = pendingUpdatesBuffer.get(sessionId) ?? [];
+            pending.push(decoded);
+            pendingUpdatesBuffer.set(sessionId, pending);
+            return;
+          }
           Queue.offerUnsafe(updatesQueue, decoded);
         } catch {
           // HACK: unknown session update types from newer ACP servers are silently dropped
@@ -681,6 +686,15 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
             const sessionId = SessionId.makeUnsafe(response.sessionId);
             const updatesQueue = yield* Queue.unbounded<AcpSessionUpdate, SessionQueueError>();
             sessionUpdatesMap.set(sessionId, updatesQueue);
+
+            const buffered = pendingUpdatesBuffer.get(response.sessionId);
+            if (buffered) {
+              for (const update of buffered) {
+                Queue.offerUnsafe(updatesQueue, update);
+              }
+              pendingUpdatesBuffer.delete(response.sessionId);
+            }
+
             yield* Effect.logInfo("ACP session created", { sessionId });
 
             if (response.configOptions && response.configOptions.length > 0) {
