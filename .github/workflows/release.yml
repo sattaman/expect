@@ -30,7 +30,8 @@ jobs:
         with:
           node-version: 22
           cache: "pnpm"
-          registry-url: "https://registry.npmjs.org"
+      - name: Upgrade npm
+        run: npm install -g npm@latest
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build
@@ -42,7 +43,6 @@ jobs:
           publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
 
   canary:
@@ -54,7 +54,8 @@ jobs:
         with:
           node-version: 22
           cache: "pnpm"
-          registry-url: "https://registry.npmjs.org"
+      - name: Upgrade npm
+        run: npm install -g npm@latest
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
       - name: Build
@@ -66,5 +67,4 @@ jobs:
       - name: Publish (canary)
         run: pnpm changeset publish --tag canary
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
