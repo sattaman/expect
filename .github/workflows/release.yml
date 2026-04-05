@@ -42,6 +42,7 @@ jobs:
           publish: pnpm run release
         env:
           GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true
 
   canary:
@@ -65,4 +66,5 @@ jobs:
       - name: Publish (canary)
         run: pnpm changeset publish --tag canary
         env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           NPM_CONFIG_PROVENANCE: true

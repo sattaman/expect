@@ -2,7 +2,7 @@
 
 > **Agents**: Do NOT create changesets, bump versions, or publish packages unless a human explicitly asks you to. This guide is for reference only.
 
-This repo uses [Changesets](https://github.com/changesets/changesets) for versioning and publishing. Releases are fully automated via GitHub Actions with npm Trusted Publishing (OIDC — no tokens stored).
+This repo uses [Changesets](https://github.com/changesets/changesets) for versioning and publishing. Releases are fully automated via GitHub Actions with provenance attestations.
 
 ## Published packages
 
@@ -54,26 +54,17 @@ This triggers the Release workflow again. With no pending changesets, it runs `p
 
 - Runs on every push to `main`
 - Uses a **GitHub App** (`RELEASE_APP_ID` / `RELEASE_APP_PRIVATE_KEY` secrets) to author the "Version Packages" PR
-- Publishes to npm via **Trusted Publishing** (OIDC) — no npm token needed
+- Publishes to npm via `NPM_TOKEN` from the `million-release-bot` npm account
 - Attaches SLSA provenance attestations to every publish
 
 ### Required GitHub repo secrets
 
 
-| Secret                    | Purpose                                  |
-| ------------------------- | ---------------------------------------- |
-| `RELEASE_APP_ID`          | GitHub App ID for the release bot        |
-| `RELEASE_APP_PRIVATE_KEY` | GitHub App private key (`.pem` contents) |
-
-
-### npm Trusted Publishing
-
-Each published package must have Trusted Publishing configured on npmjs.com:
-
-- **Repository owner**: `millionco`
-- **Repository name**: `expect`
-- **Workflow filename**: `release.yml`
-- **Environment**: *(blank)*
+| Secret                    | Purpose                                          |
+| ------------------------- | ------------------------------------------------ |
+| `RELEASE_APP_ID`          | GitHub App ID for the release bot                |
+| `RELEASE_APP_PRIVATE_KEY` | GitHub App private key (`.pem` contents)         |
+| `NPM_TOKEN`              | npm Automation token from `million-release-bot`  |
 
 ### Changeset config (`.changeset/config.json`)
 
@@ -107,7 +98,7 @@ If your changes don't affect published packages (e.g., internal refactors, CI ch
 
 ### Adding a new published package
 
-If you add a new package to the monorepo that needs to be published to npm, contact **Aiden Bai** to configure Trusted Publishing for it on npmjs.com. Without this, the CI workflow won't have permission to publish the new package.
+If you add a new package to the monorepo that needs to be published to npm, contact **Aiden Bai** to add the `million-release-bot` npm account as a maintainer. Without this, the CI workflow won't have permission to publish the new package.
 
 ### Canary releases
 
