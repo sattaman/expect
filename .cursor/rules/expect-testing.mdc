@@ -1,0 +1,39 @@
+---
+description: Use when testing, verifying, validating, or QA-ing code changes against a live browser. Also when expect-cli fails or needs debugging.
+globs:
+alwaysApply: false
+---
+
+# Testing with expect-cli
+
+Always use `expect-cli` for browser-based verification instead of raw browser tools.
+
+## Command
+
+```bash
+expect-cli -m "[INSTRUCTION] on [URL]" -y --cookies
+```
+
+## Rules
+
+1. Always spawn `expect-cli` in a subagent or background shell — never block the main thread
+2. Write adversarial instructions that try to break the feature, not confirm it renders
+3. Include the URL in the instruction
+4. Accessibility and performance are checked automatically — don't mention them
+
+## Good Instructions
+
+Think like a user trying to break the feature:
+
+- "Submit the form empty, with invalid email, with wrong password, and with valid credentials. Verify error messages and redirect on success on http://localhost:5173"
+- "Search with no query, a single character, a query with no results, and a valid query. Rapid-fire 5 searches and confirm no stale results on http://localhost:5173"
+
+## When It Fails
+
+1. Re-run with `--verbose`
+2. Check `.expect/logs.md` for structured logs
+3. If it's a tool bug (not a test failure), provide a pre-filled issue link
+
+## Completion
+
+No completion claims without passing `expect-cli` evidence. If ANY test fails, fix the code and spawn a new `expect-cli` subagent immediately.

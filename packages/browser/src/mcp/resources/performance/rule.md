@@ -72,3 +72,11 @@ description: >
 - [ ] Load analytics `async` — never block main thread
 - [ ] Delay widgets until interaction (IntersectionObserver)
 - [ ] Facade pattern for embeds (static placeholder until click)
+
+## Sub-Rules
+
+- `expect://rules/performance/core-web-vitals`
+- `expect://rules/performance/images`
+- `expect://rules/performance/fonts`
+- `expect://rules/performance/caching`
+- `expect://rules/performance/runtime`

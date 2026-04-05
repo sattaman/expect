@@ -1,0 +1,72 @@
+---
+description: Use when writing Effect-TS code, services, errors, layers, or atoms in this codebase. Enforces Effect v4 patterns.
+globs:
+  - "**/*.ts"
+  - "**/*.tsx"
+alwaysApply: false
+---
+
+# Effect-TS Patterns
+
+This codebase uses Effect v4. Follow these patterns strictly.
+
+## Services
+
+Use `ServiceMap.Service` with `make:` property. Never `Effect.Service` or `Context.Tag`.
+
+```ts
+export class MyService extends ServiceMap.Service<MyService>()("@scope/MyService", {
+  make: Effect.gen(function* () {
+    const dep = yield* SomeDependency;
+    const doThing = Effect.fn("MyService.doThing")(function* (input: string) {
+      yield* Effect.annotateCurrentSpan({ input });
+      return result;
+    });
+    return { doThing } as const;
+  }),
+}) {
+  static layer = Layer.effect(this)(this.make).pipe(Layer.provide(SomeDependency.layer));
+}
+```
+
+## Errors
+
+Use `Schema.ErrorClass` with explicit `_tag`. Never `Schema.TaggedError`.
+
+```ts
+export class MyNotFoundError extends Schema.ErrorClass<MyNotFoundError>(
+  "MyNotFoundError",
+)({
+  _tag: Schema.tag("MyNotFoundError"),
+  entityId: Schema.String,
+}) {
+  message = `Entity not found: ${this.entityId}`;
+}
+```
+
+## Error Handling
+
+- `catchTag` / `catchTags` for specific errors
+- Never `catchAll`, `mapError`, `option`, `ignore`
+- Infrastructure errors become defects: `Effect.catchTags({ SqlError: Effect.die })`
+- Use `.asEffect()` on error classes, not `Effect.fail(new Error(...))`
+
+## Functions
+
+Every effectful function uses `Effect.fn` with a span name:
+
+```ts
+const myFn = Effect.fn("myFn")(function* (arg: string) {
+  yield* Effect.annotateCurrentSpan({ arg });
+  // ...
+});
+```
+
+## Key Rules
+
+- Never explicitly type return types on Effect functions
+- Never use `null` — use `Option` or `undefined`
+- Never use `process.env` — use `Config.string` / `Config.integer`
+- Prefer `Effect.forEach` over `Effect.all`
+- Use `Effect.try` / `Effect.tryPromise` instead of try/catch
+- Branded IDs: `Schema.String.pipe(Schema.brand("MyId"))`

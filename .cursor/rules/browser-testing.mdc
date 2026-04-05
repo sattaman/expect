@@ -1,0 +1,58 @@
+---
+description: Use when performing browser-based testing, visual verification, accessibility checks, or performance profiling using the browser MCP.
+globs:
+alwaysApply: false
+---
+
+# Browser Testing with MCP
+
+When using the `cursor-ide-browser` MCP for testing or verification, follow this workflow.
+
+## Pre-flight
+
+1. Use `browser_tabs` with action `list` to check for existing tabs
+2. If a tab exists for the target URL, `browser_lock` it before interacting
+3. If no tab exists, `browser_navigate` first, then `browser_lock`
+
+## Accessibility Quick Audit
+
+After navigating to a page, check accessibility by:
+
+1. `browser_snapshot` to get the ARIA tree — look for:
+   - Missing `aria-label` on icon buttons
+   - Missing `role` attributes on custom widgets
+   - Form inputs without associated labels
+   - Interactive elements missing keyboard support
+2. `browser_press_key` with Tab to verify focus order is logical
+3. Check color contrast visually via `browser_take_screenshot`
+
+Reference the accessibility skill at `.agents/skills/accessibility/SKILL.md` for WCAG 2.2 criteria.
+
+## Performance Profiling
+
+Use the browser MCP's built-in profiler for Core Web Vitals investigation:
+
+1. `browser_profile_start` before the interaction
+2. Perform the user action (click, navigate, type)
+3. `browser_profile_stop` to capture the profile
+4. Read the generated `cpu-profile-*-summary.md` from `~/.cursor/browser-logs/`
+5. Cross-reference with the raw `.json` profile for accuracy
+
+Reference the performance skill at `.agents/skills/performance/SKILL.md` and the core-web-vitals skill at `.agents/skills/core-web-vitals/SKILL.md` for optimization patterns.
+
+## Visual Regression
+
+1. `browser_take_screenshot` for baseline
+2. Make code changes
+3. `browser_navigate` to reload (or hard refresh)
+4. `browser_take_screenshot` again for comparison
+5. Check for layout shifts (CLS), missing images, broken styles
+
+## Console & Network Checks
+
+1. `browser_console_messages` — look for errors, warnings, deprecation notices
+2. `browser_network_requests` — check for failed requests, mixed content, slow responses
+
+## Unlock When Done
+
+Always call `browser_lock` with action `unlock` when finished with ALL browser operations for the turn.

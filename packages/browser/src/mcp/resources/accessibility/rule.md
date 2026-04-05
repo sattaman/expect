@@ -35,3 +35,6 @@ Use native HTML before ARIA. Make minimal, targeted fixes — do not refactor un
 
 - `expect://rules/accessibility/audit-rule-mapping`
 - `expect://rules/accessibility/patterns`
+- `expect://rules/accessibility/wcag-2-2`
+- `expect://rules/accessibility/color-contrast`
+- `expect://rules/accessibility/focus-management`

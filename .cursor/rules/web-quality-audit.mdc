@@ -1,0 +1,63 @@
+---
+description: Use when asked to audit web quality, review a page for issues, check Lighthouse scores, or optimize a site for performance, accessibility, SEO, or best practices.
+globs:
+alwaysApply: false
+---
+
+# Web Quality Audit Workflow
+
+When auditing web quality, use the skills in `.agents/skills/` systematically.
+
+## Audit Order (by impact)
+
+1. **Performance** — `.agents/skills/performance/SKILL.md`
+   - Check performance budgets (JS < 300KB, CSS < 100KB, total < 1.5MB)
+   - Verify LCP image has `fetchpriority="high"` and is preloaded
+   - Check for render-blocking resources in `<head>`
+   - Verify lazy loading on below-fold images
+
+2. **Core Web Vitals** — `.agents/skills/core-web-vitals/SKILL.md`
+   - LCP < 2.5s, INP < 200ms, CLS < 0.1
+   - All images have width/height or aspect-ratio
+   - No layout-triggering animations (use transform/opacity)
+   - Event handlers complete < 100ms
+
+3. **Accessibility** — `.agents/skills/accessibility/SKILL.md`
+   - Color contrast ratios (4.5:1 normal text, 3:1 large text)
+   - All images have alt text
+   - All form inputs have labels
+   - Keyboard navigation works (no traps)
+   - Focus indicators visible
+   - Target size ≥ 24×24px
+
+4. **SEO** — `.agents/skills/seo/SKILL.md`
+   - Title tags present and unique (50-60 chars)
+   - Meta descriptions present (150-160 chars)
+   - Single `<h1>` per page with proper hierarchy
+   - Canonical URLs set
+   - Structured data (JSON-LD) where applicable
+
+5. **Best Practices** — `.agents/skills/best-practices/SKILL.md`
+   - HTTPS everywhere, no mixed content
+   - No deprecated APIs (document.write, sync XHR)
+   - Security headers configured
+   - No exposed source maps in production
+   - Valid HTML, semantic elements
+
+## Browser MCP Integration
+
+When auditing a live page, combine skills with the `cursor-ide-browser` MCP:
+
+- `browser_snapshot` for ARIA tree analysis (accessibility)
+- `browser_console_messages` for errors (best practices)
+- `browser_network_requests` for resource loading (performance)
+- `browser_profile_start/stop` for CPU profiling (Core Web Vitals)
+- `browser_take_screenshot` for visual review (CLS, contrast)
+
+## Output Format
+
+Structure findings by severity:
+- **Critical** — fix immediately (security, keyboard traps, missing alt text)
+- **High** — fix before launch (CWV failures, contrast issues)
+- **Medium** — fix within sprint (SEO, performance opportunities)
+- **Low** — fix when convenient (minor optimizations)

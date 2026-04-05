@@ -63,3 +63,9 @@ license: MIT
 
 - [ ] Minimal changes — do not refactor unrelated code
 - [ ] Follow the project's existing metadata pattern
+
+## Sub-Rules
+
+- `expect://rules/seo/structured-data`
+- `expect://rules/seo/technical-seo`
+- `expect://rules/seo/mobile-seo`
