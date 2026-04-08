@@ -32,17 +32,6 @@ import { TextMorph } from "torph/react";
 const AgentOverlay = () => {
   const [state, setState] = useState<OverlayState>(loadInitialState);
   const [cursorShape, setCursorShape] = useState<CursorShape>("pointer");
-  const [isDark, setIsDark] = useState(
-    () => window.matchMedia("(prefers-color-scheme: dark)").matches,
-  );
-
-  useEffect(() => {
-    const mql = window.matchMedia("(prefers-color-scheme: dark)");
-    const onChange = (event: MediaQueryListEvent) => setIsDark(event.matches);
-    mql.addEventListener("change", onChange);
-    return () => mql.removeEventListener("change", onChange);
-  }, []);
-
   useEffect(() => {
     setOverlayState = setState;
     return () => {
@@ -183,21 +172,22 @@ const AgentOverlay = () => {
             <div
               className="absolute pointer-events-none w-max"
               style={{
-                left: tooltipFlipX ? undefined : "32px",
+                left: tooltipFlipX ? undefined : "25px",
                 right: tooltipFlipX ? "calc(100% - 2px)" : undefined,
-                top: tooltipFlipY ? undefined : "32px",
+                top: tooltipFlipY ? undefined : "25px",
                 bottom: tooltipFlipY ? "calc(100% - 2px)" : undefined,
               }}
             >
               <div
-                className="rounded-full py-1.5 px-3 text-white font-medium text-[13px] leading-5 font-[system-ui,-apple-system,sans-serif] animate-[expect-comment-in_0.25s_cubic-bezier(0.22,1,0.36,1)_both]"
+                className="rounded-full py-1.5 px-3.5 text-white font-semibold text-[15.5px] leading-[23px] antialiased animate-[expect-comment-in_0.25s_cubic-bezier(0.22,1,0.36,1)_both]"
                 style={{
                   maxWidth: `${tooltipMaxWidth}px`,
-                  background: "#000",
-                  border: "2px solid color(display-p3 0.118 0.481 0.988)",
-                  boxShadow: isDark
-                    ? "0 0 4px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.3)"
-                    : "0 0 4px rgba(0,0,0,0.22), 0 2px 8px rgba(0,0,0,0.12)",
+                  background: "#161616",
+                  border: "3px solid white",
+                  boxShadow: "0 0 2px rgba(0,0,0,0.22)",
+                  fontFamily:
+                    "'OpenRunde-Medium','Open_Runde',system-ui,sans-serif",
+                  fontSynthesis: "none",
                   overflow: "hidden",
                   whiteSpace: "nowrap",
                   textOverflow: "ellipsis",
