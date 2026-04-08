@@ -64,7 +64,7 @@ const StarDots = () => {
               width: `${dotSize}px`,
               height: `${dotSize}px`,
               borderRadius: "50%",
-              backgroundColor: "color(display-p3 1 0.722 0)",
+              backgroundColor: OVERLAY_BLUE,
               animation: isCenter
                 ? `expect-dot-center ${dot.duration}ms ease-in-out infinite`
                 : `expect-dot-orbit ${dot.duration}ms ease-in-out infinite`,
@@ -123,6 +123,11 @@ const TextCarousel = ({ text }: { text: string }) => {
         display: "inline-block",
         position: "relative",
         verticalAlign: "top",
+        minWidth: 0,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+        transform: "translateY(1.5px)",
       }}
     >
       {items.map((item, index) => {
@@ -134,6 +139,9 @@ const TextCarousel = ({ text }: { text: string }) => {
             style={{
               display: "inline-block",
               whiteSpace: "nowrap",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
               position: isOutgoing ? "absolute" : undefined,
               left: isOutgoing ? 0 : undefined,
               top: isOutgoing ? 0 : undefined,
@@ -304,29 +312,27 @@ const AgentOverlay = () => {
           </div>
           {hasLabel && (
             <div
-              className="absolute pointer-events-none w-max"
+              className="absolute pointer-events-none"
               style={{
                 left: tooltipFlipX ? undefined : "25px",
                 right: tooltipFlipX ? "calc(100% - 2px)" : undefined,
                 top: tooltipFlipY ? undefined : "25px",
                 bottom: tooltipFlipY ? "calc(100% - 2px)" : undefined,
+                maxWidth: `${tooltipMaxWidth}px`,
               }}
             >
               <div
-                className="rounded-full py-1.5 px-3.5 text-white font-semibold text-[16.5px] leading-[23px] antialiased animate-[expect-comment-in_0.25s_cubic-bezier(0.22,1,0.36,1)_both]"
+                className="rounded-full py-2 px-3.5 text-white font-semibold text-[16.5px] leading-none antialiased animate-[expect-comment-in_0.25s_cubic-bezier(0.22,1,0.36,1)_both]"
                 style={{
-                  maxWidth: `${tooltipMaxWidth}px`,
                   display: "flex",
                   alignItems: "center",
                   gap: "8px",
                   background: "#000",
-                  border: "3px solid white",
+                  border: `3px solid ${OVERLAY_BLUE}`,
                   boxShadow: "0 0 2px rgba(0,0,0,0.22)",
                   fontFamily: "'OpenRunde-Medium','Open_Runde',system-ui,sans-serif",
                   fontSynthesis: "none",
                   overflow: "hidden",
-                  whiteSpace: "nowrap",
-                  textOverflow: "ellipsis",
                 }}
               >
                 <StarDots />
