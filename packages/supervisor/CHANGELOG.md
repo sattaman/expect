@@ -1,5 +1,15 @@
 # @expect/supervisor
 
+## 0.1.1
+
+### Patch Changes
+
+- e41317d: fix mcp tests
+- Updated dependencies [e41317d]
+  - @expect/agent@0.1.1
+  - @expect/browser@0.1.1
+  - @expect/shared@0.1.1
+
 ## 0.1.0
 
 ### Minor Changes
