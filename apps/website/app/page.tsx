@@ -1180,7 +1180,7 @@ export default function HomePage() {
   }, [activeMcpClient]);
 
   return (
-    <div className="[font-synthesis:none] overflow-x-clip antialiased min-h-screen bg-[color(display-p3_0.986_0.986_0.986)] flex flex-col items-center">
+    <div className="[font-synthesis:none] overflow-x-clip antialiased min-h-screen bg-[color(display-p3_0.966_0.966_0.966)] flex flex-col items-center">
       <div className="w-full pt-3 sm:pt-6 pb-2 sm:pb-4 flex flex-col items-center relative">
         <div
           className="absolute inset-0 pointer-events-none"
@@ -1213,9 +1213,7 @@ export default function HomePage() {
             >
               Expect
             </div>
-            <div className="[letter-spacing:0em] max-w-102 [white-space-collapse:preserve] font-['OpenRunde-Medium','Open_Runde',system-ui,sans-serif] font-medium text-[17px]/[25px] text-[#707070]">
-              A skill for testing your agent&apos;s code in a real browser.
-            </div>
+            <div className="[letter-spacing:0em] [white-space-collapse:preserve] font-['OpenRunde-Medium','Open_Runde',system-ui,sans-serif] font-medium text-[17px]/[25px] text-[#707070]">A skill for testing your agent&apos;s code in a real browser.</div>
           </div>
           {/**
            * from Paper
@@ -1408,7 +1406,7 @@ export default function HomePage() {
             </div>
           </div>
         </div>
-        <div className="relative w-full max-w-112.75 min-w-0 px-4 sm:px-0 pb-80">
+        <div className="relative w-full max-w-112.75 min-w-0 px-4 sm:px-0 pb-16">
           <a
             href="https://github.com/millionco/expect"
             target="_blank"
