@@ -179,10 +179,10 @@ const AgentOverlay = () => {
               }}
             >
               <div
-                className="rounded-full py-1.5 px-3.5 text-white font-semibold text-[15.5px] leading-[23px] antialiased animate-[expect-comment-in_0.25s_cubic-bezier(0.22,1,0.36,1)_both]"
+                className="rounded-full py-1.5 px-3.5 text-white font-semibold text-[16.5px] leading-[23px] antialiased animate-[expect-comment-in_0.25s_cubic-bezier(0.22,1,0.36,1)_both]"
                 style={{
                   maxWidth: `${tooltipMaxWidth}px`,
-                  background: "#161616",
+                  background: "color(display-p3 0 0.464 0.925)",
                   border: "3px solid white",
                   boxShadow: "0 0 2px rgba(0,0,0,0.22)",
                   fontFamily: "'OpenRunde-Medium','Open_Runde',system-ui,sans-serif",
