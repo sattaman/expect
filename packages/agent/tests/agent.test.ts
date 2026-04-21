@@ -1,11 +1,22 @@
 import { describe, expect, it } from "vite-plus/test";
+import { execSync } from "node:child_process";
 import { Effect, Option, Stream } from "effect";
 import { Agent } from "../src/agent";
 import { AgentStreamOptions } from "../src/types";
 import { isCommandAvailable } from "@expect/shared/is-command-available";
 
+const isAgentAuthenticated = (command: string, authArgs: readonly string[]): boolean => {
+  if (!isCommandAvailable(command)) return false;
+  try {
+    execSync(`${command} ${authArgs.join(" ")}`, { stdio: "ignore" });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 const hasCodex = isCommandAvailable("codex");
-const hasClaude = isCommandAvailable("claude");
+const hasClaude = isAgentAuthenticated("claude", ["auth", "status"]);
 
 const TEST_LAYERS = [
   ["codex-acp", Agent.layerCodex, hasCodex],

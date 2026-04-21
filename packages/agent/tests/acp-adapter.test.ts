@@ -140,6 +140,26 @@ describe("AcpAdapter", () => {
     }, 15_000);
   });
 
+  describe("layerKiro", () => {
+    it("resolves or fails with not-installed/auth error", async () => {
+      const exit = await Effect.gen(function* () {
+        return yield* AcpAdapter;
+      }).pipe(Effect.provide(AcpAdapter.layerKiro), Effect.runPromiseExit);
+
+      if (Exit.isSuccess(exit)) {
+        expect(exit.value.provider).toBe("kiro");
+        expect(exit.value.bin).toBe("kiro-cli");
+        expect(exit.value.args).toEqual(["acp"]);
+      } else {
+        const error = exit.cause.toString();
+        expect(
+          error.includes("AcpProviderNotInstalledError") ||
+            error.includes("AcpProviderUnauthenticatedError"),
+        ).toBe(true);
+      }
+    }, 15_000);
+  });
+
   describe("error messages", () => {
     it("copilot not-installed error mentions @github/copilot", () => {
       const error = new AcpProviderNotInstalledError({ provider: "copilot" });
@@ -191,6 +211,16 @@ describe("AcpAdapter", () => {
       expect(error.message).toContain("FACTORY_API_KEY");
     });
 
+    it("kiro not-installed error mentions kiro.dev/cli", () => {
+      const error = new AcpProviderNotInstalledError({ provider: "kiro" });
+      expect(error.message).toContain("kiro.dev/cli");
+    });
+
+    it("kiro unauthenticated error mentions kiro-cli login", () => {
+      const error = new AcpProviderUnauthenticatedError({ provider: "kiro" });
+      expect(error.message).toContain("kiro-cli login");
+    });
+
     it("claude not-installed error mentions code.claude.com", () => {
       const error = new AcpProviderNotInstalledError({ provider: "claude" });
       expect(error.message).toContain("code.claude.com");
@@ -212,6 +242,8 @@ describe("AcpAdapter", () => {
         "cursor",
         "opencode",
         "droid",
+        "pi",
+        "kiro",
       ] as const;
 
       for (const backend of backends) {

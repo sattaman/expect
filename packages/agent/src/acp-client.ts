@@ -104,6 +104,11 @@ export class AcpProviderNotInstalledError extends Schema.ErrorClass<AcpProviderN
       () =>
         "Pi is not installed. Install it with `npm install -g @mariozechner/pi-coding-agent`, or use Claude Code with `expect -a claude`.",
     ),
+    Match.when(
+      "kiro",
+      () =>
+        "Kiro CLI is not installed. Install it from https://kiro.dev/cli/, or use Claude Code with `expect -a claude`.",
+    ),
     Match.orElse(
       () => "Your coding agent CLI is not installed. Please install it and then re-run expect.",
     ),
@@ -131,6 +136,10 @@ export class AcpProviderUnauthenticatedError extends Schema.ErrorClass<AcpProvid
       "droid",
       () =>
         "Please set the FACTORY_API_KEY environment variable (get one at app.factory.ai/settings/api-keys), and then re-run expect.",
+    ),
+    Match.when(
+      "kiro",
+      () => "Please log in using `kiro-cli login`, and then re-run expect.",
     ),
     Match.orElse(() => "Please sign in to your coding agent, and then re-run expect."),
   );
@@ -267,6 +276,9 @@ export class AcpAdapter extends ServiceMap.Service<
         ),
         Effect.catchReason("PlatformError", "NotFound", () =>
           new AcpProviderNotInstalledError({ provider: "claude" }).asEffect(),
+        ),
+        Effect.catchTag("SchemaError", () =>
+          new AcpProviderUnauthenticatedError({ provider: "claude" }).asEffect(),
         ),
       );
 
@@ -538,6 +550,55 @@ export class AcpAdapter extends ServiceMap.Service<
       return AcpAdapter.of({
         provider: "pi",
         bin: "pi",
+        args: ["acp"],
+        env: {},
+      });
+    }),
+  ).pipe(Layer.provide(NodeServices.layer));
+
+  static layerKiro = Layer.effect(AcpAdapter)(
+    Effect.gen(function* () {
+      const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+
+      yield* ChildProcess.make("kiro-cli", ["--version"]).pipe(
+        spawner.string,
+        Effect.timeoutOrElse({
+          duration: ACP_AUTH_CHECK_TIMEOUT,
+          onTimeout: () =>
+            new AcpConnectionInitError({
+              cause:
+                "Kiro timed out during version check. Ensure `kiro-cli --version` runs quickly.",
+            }).asEffect(),
+        }),
+        Effect.catchReason("PlatformError", "NotFound", () =>
+          new AcpProviderNotInstalledError({ provider: "kiro" }).asEffect(),
+        ),
+        Effect.catchTag("PlatformError", (platformError) =>
+          new AcpConnectionInitError({
+            cause: `Kiro found but failed to run: ${platformError.message}`,
+          }).asEffect(),
+        ),
+      );
+
+      yield* ChildProcess.make("kiro-cli", ["whoami"]).pipe(
+        spawner.string,
+        Effect.flatMap((output) =>
+          output.trim().length > 0
+            ? Effect.void
+            : new AcpProviderUnauthenticatedError({ provider: "kiro" }).asEffect(),
+        ),
+        Effect.timeoutOrElse({
+          duration: ACP_AUTH_CHECK_TIMEOUT,
+          onTimeout: () => new AcpProviderUnauthenticatedError({ provider: "kiro" }).asEffect(),
+        }),
+        Effect.catchTag("PlatformError", () =>
+          new AcpProviderUnauthenticatedError({ provider: "kiro" }).asEffect(),
+        ),
+      );
+
+      return AcpAdapter.of({
+        provider: "kiro",
+        bin: "kiro-cli",
         args: ["acp"],
         env: {},
       });
@@ -950,4 +1011,6 @@ export class AcpClient extends ServiceMap.Service<AcpClient>()("@expect/AcpClien
   static layerCursor = this.layer.pipe(Layer.provide(AcpAdapter.layerCursor));
   static layerOpencode = this.layer.pipe(Layer.provide(AcpAdapter.layerOpencode));
   static layerDroid = this.layer.pipe(Layer.provide(AcpAdapter.layerDroid));
+  static layerPi = this.layer.pipe(Layer.provide(AcpAdapter.layerPi));
+  static layerKiro = this.layer.pipe(Layer.provide(AcpAdapter.layerKiro));
 }

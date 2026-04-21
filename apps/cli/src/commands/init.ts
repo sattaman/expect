@@ -105,7 +105,7 @@ export const runInit = async (options: InitOptions = {}) => {
 
   if (availableAgents.length === 0) {
     logger.error(
-      "No supported coding agent found. expect requires one of: Claude Code, Codex, GitHub Copilot, Gemini, Cursor, OpenCode, Factory Droid, or Pi.",
+      "No supported coding agent found. expect requires one of: Claude Code, Codex, GitHub Copilot, Gemini, Cursor, OpenCode, Factory Droid, Pi, or Kiro.",
     );
     logger.break();
     logger.log(`  Install one to get started:`);
@@ -132,6 +132,9 @@ export const runInit = async (options: InitOptions = {}) => {
     );
     logger.log(
       `    ${highlighter.info("Pi")}               ${highlighter.dim("npm install -g @mariozechner/pi-coding-agent")}`,
+    );
+    logger.log(
+      `    ${highlighter.info("Kiro")}             ${highlighter.dim("https://kiro.dev/cli/")}`,
     );
     logger.break();
     process.exit(1);

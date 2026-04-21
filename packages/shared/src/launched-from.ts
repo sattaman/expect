@@ -10,6 +10,7 @@ const AGENT_ENVIRONMENT_VARIABLES = [
   "PI_CODING_AGENT_DIR",
   "AMP_HOME",
   "AMI",
+  "KIRO_AGENT_PATH",
 ];
 
 const PARENT_AGENT_ENV_MAP: ReadonlyArray<readonly [string, string]> = [
@@ -19,6 +20,7 @@ const PARENT_AGENT_ENV_MAP: ReadonlyArray<readonly [string, string]> = [
   ["OPENCODE", "opencode"],
   ["AMP_HOME", "amp"],
   ["AMI", "ami"],
+  ["KIRO_AGENT_PATH", "kiro"],
 ];
 
 export const detectParentAgent = (): string | undefined => {

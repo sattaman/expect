@@ -120,7 +120,7 @@ describe("detectAvailableAgents", () => {
     expect(agents).toEqual(["pi"]);
   });
 
-  it("checks all eight supported agents", () => {
+  it("checks all nine supported agents", () => {
     mockedWhichSync.mockImplementation((command: string) => `/usr/local/bin/${command}`);
 
     const agents = detectAvailableAgents();
@@ -133,6 +133,7 @@ describe("detectAvailableAgents", () => {
       "opencode",
       "droid",
       "pi",
+      "kiro",
     ]);
   });
 

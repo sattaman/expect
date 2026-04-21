@@ -33,7 +33,8 @@ export type AgentBackend =
   | "cursor"
   | "opencode"
   | "droid"
-  | "pi";
+  | "pi"
+  | "kiro";
 
 export class Agent extends ServiceMap.Service<
   Agent,
@@ -96,6 +97,7 @@ export class Agent extends ServiceMap.Service<
   static layerOpencode = Agent.layerAcp.pipe(Layer.provide(AcpAdapter.layerOpencode));
   static layerDroid = Agent.layerAcp.pipe(Layer.provide(AcpAdapter.layerDroid));
   static layerPi = Agent.layerAcp.pipe(Layer.provide(AcpAdapter.layerPi));
+  static layerKiro = Agent.layerAcp.pipe(Layer.provide(AcpAdapter.layerKiro));
 
   static layerFor = (backend: AgentBackend): Layer.Layer<Agent, AgentLayerError> => {
     const layers: Record<AgentBackend, Layer.Layer<Agent, AgentLayerError>> = {
@@ -107,6 +109,7 @@ export class Agent extends ServiceMap.Service<
       opencode: Agent.layerOpencode,
       droid: Agent.layerDroid,
       pi: Agent.layerPi,
+      kiro: Agent.layerKiro,
     };
     return layers[backend];
   };

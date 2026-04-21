@@ -8,7 +8,8 @@ export type SupportedAgent =
   | "cursor"
   | "opencode"
   | "droid"
-  | "pi";
+  | "pi"
+  | "kiro";
 
 interface AgentMeta {
   readonly binaries: readonly string[];
@@ -29,6 +30,7 @@ const SUPPORTED_AGENTS: Record<SupportedAgent, AgentMeta> = {
   opencode: { binaries: ["opencode"], displayName: "OpenCode", skillDir: ".opencode/skills" },
   droid: { binaries: ["droid"], displayName: "Factory Droid", skillDir: ".droid/skills" },
   pi: { binaries: ["pi", "omegon"], displayName: "Pi", skillDir: ".pi/skills" },
+  kiro: { binaries: ["kiro-cli"], displayName: "Kiro", skillDir: ".kiro/skills" },
 };
 
 export const detectAvailableAgents = (): SupportedAgent[] =>

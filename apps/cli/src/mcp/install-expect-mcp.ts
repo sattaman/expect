@@ -14,7 +14,7 @@ import { type ConfigFormat, ConfigRecord, type McpServerConfig } from "./config-
 import { readJsonConfig, writeJsonConfig } from "./json-config";
 import { readTomlConfig, writeTomlConfig } from "./toml-config";
 
-export type McpSupportedAgent = "claude" | "codex" | "copilot" | "cursor" | "gemini" | "opencode";
+export type McpSupportedAgent = "claude" | "codex" | "copilot" | "cursor" | "gemini" | "opencode" | "kiro";
 
 export type McpInstallScope = "global" | "project";
 
@@ -124,6 +124,13 @@ const MCP_AGENT_CONFIGS: Record<McpSupportedAgent, AgentMcpConfig> = {
     projectConfigKey: "mcp",
     format: "json",
     transformConfig: transformOpenCodeConfig,
+  },
+  kiro: {
+    globalConfigPath: path.join(HOME_DIRECTORY, ".kiro", "settings", "mcp.json"),
+    projectConfigPath: ".kiro/settings/mcp.json",
+    globalConfigKey: "mcpServers",
+    projectConfigKey: "mcpServers",
+    format: "json",
   },
 };
 

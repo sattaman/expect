@@ -7,6 +7,7 @@ const AGENT_ENV_MAP: ReadonlyArray<readonly [envVariable: string, agent: AgentPr
   ["CODEX_CI", "codex"],
   ["OPENCODE", "opencode"],
   ["PI_CODING_AGENT_DIR", "pi"],
+  ["KIRO_AGENT_PATH", "kiro"],
 ];
 
 export const inferAgentFromEnv = Effect.gen(function* () {
