@@ -18,7 +18,7 @@
   "author": "Million Software <founders@million.dev>",
   "repository": {
     "type": "git",
-    "url": "https://github.com/millionco/expect",
+    "url": "https://github.com/sattaman/expect",
     "directory": "apps/cli"
   },
   "bin": {
