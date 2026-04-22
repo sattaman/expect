@@ -433,7 +433,7 @@ acli rovodev mcp
 
 ## Kiro
 
-Add this to `.kiro/settings/mcp.json` in your project, or `~/.kiro/settings/mcp.json` globally. See [Kiro MCP docs](https://kiro.dev/docs/cli/mcp) for more info.
+Install [Kiro CLI](https://kiro.dev/cli/), then add this to `.kiro/settings/mcp.json` in your project, or `~/.kiro/settings/mcp.json` globally. See [Kiro MCP docs](https://kiro.dev/docs/cli/mcp) for more info.
 
 ```json
 {
