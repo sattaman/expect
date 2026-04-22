@@ -277,9 +277,6 @@ export class AcpAdapter extends ServiceMap.Service<
         Effect.catchReason("PlatformError", "NotFound", () =>
           new AcpProviderNotInstalledError({ provider: "claude" }).asEffect(),
         ),
-        Effect.catchTag("SchemaError", () =>
-          new AcpProviderUnauthenticatedError({ provider: "claude" }).asEffect(),
-        ),
       );
 
       return yield* Effect.try({
